@@ -1,0 +1,16 @@
+version: 1.0.{build}
+configuration: Release
+image: Visual Studio 2015
+before_build:
+  - nuget restore
+build:
+  verbosity: minimal
+  publish_nuget: true
+deploy:
+  provider: NuGet
+  skip_symbols: false
+  symbol_server:
+  api_key:
+    secure: anodu2SEKa6CNIgW37RDmXkpoNtOmgu/PusG9AnbzmtOHbiq8EOY9Drhyv1rHajw
+  artifact: /.*\.nupkg/
+  server:

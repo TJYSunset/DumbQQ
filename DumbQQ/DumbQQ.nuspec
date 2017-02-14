@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Sunsetware.DumbQQ</id>
+    <version>$version$</version>
+    <title>DumbQQ</title>
+    <authors>TJYSunset</authors>
+    <owners>TJYSunset</owners>
+    <licenseUrl>https://raw.githubusercontent.com/TJYSunset/DumbQQ/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/TJYSunset/DumbQQ</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/TJYSunset/DumbQQ/master/NugetIcon.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>对SmartQQ API的C#封装。可用于制作聊天机器人。</description>
+    <releaseNotes>First release.</releaseNotes>
+    <copyright>Copyright TJYSunset 2017</copyright>
+    <tags>QQ SmartQQ WebQQ chatbot bot api 机器人 聊天机器人</tags>
+  </metadata>
+</package>
