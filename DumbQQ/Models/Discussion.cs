@@ -8,21 +8,23 @@ using Newtonsoft.Json.Linq;
 namespace DumbQQ.Models
 {
     /// <summary>
-    /// 讨论组（不含详细信息）。
+    ///     讨论组（不含详细信息）。
     /// </summary>
     public class Discussion : IListable, IMessageable
     {
         /// <summary>
-        /// 可用于发送消息的编号。
+        ///     名称。
+        /// </summary>
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        /// <summary>
+        ///     可用于发送消息的编号。
         /// </summary>
         [JsonProperty("did")]
         public long Id { get; set; }
 
-        /// <summary>
-        /// 名称。
-        /// </summary>
-        [JsonProperty("name")]
-        public string Name { get; set; }
+        DumbQQClient.TargetType IMessageable.TargetType => DumbQQClient.TargetType.Discussion;
 
         internal static List<Discussion> GetList(DumbQQClient client)
         {
@@ -60,7 +62,5 @@ namespace DumbQQ.Models
             }
             return info;
         }
-
-        DumbQQClient.TargetType IMessageable.TargetType => DumbQQClient.TargetType.Discussion;
     }
 }

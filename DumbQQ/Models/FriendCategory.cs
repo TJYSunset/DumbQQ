@@ -8,36 +8,36 @@ using Newtonsoft.Json.Linq;
 namespace DumbQQ.Models
 {
     /// <summary>
-    /// 好友分组。
+    ///     好友分组。
     /// </summary>
     public class FriendCategory : IListable
     {
         /// <summary>
-        /// 序号。
+        ///     序号。
         /// </summary>
         [JsonProperty("index")]
         public int Index { get; set; }
 
         /// <summary>
-        /// 意义暂不明确。
+        ///     意义暂不明确。
         /// </summary>
         [JsonProperty("sort")]
         public int Sort { get; set; }
 
         /// <summary>
-        /// 名称。
+        ///     名称。
         /// </summary>
         [JsonProperty("name")]
         public string Name { get; set; }
 
         /// <summary>
-        /// 成员。
+        ///     成员。
         /// </summary>
         [JsonProperty("friends")]
         public List<Friend> Members { get; set; } = new List<Friend>();
 
         /// <summary>
-        /// 用于初始化默认分组。
+        ///     用于初始化默认分组。
         /// </summary>
         public static FriendCategory DefaultCategory()
         {

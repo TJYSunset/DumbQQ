@@ -20,120 +20,157 @@ namespace DumbQQ.Client
 {
     public class DumbQQClient
     {
-        internal static readonly ILog Logger = LogManager.GetLogger(typeof(DumbQQClient));
-        private static long _messageId = 43690001;
-        internal const long ClientId = 53999199;
-
         /// <summary>
-        /// 缓存的超时时间。
-        /// </summary>
-        public TimeSpan CacheTimeout { get; set; } = TimeSpan.FromHours(2);
-
-        /// <summary>
-        /// 发送消息的重试次数。
-        /// </summary>
-        public int RetryTimes { get; set; } = 5;
-
-        /// <summary>
-        /// 表示客户端状态的枚举。
+        ///     表示客户端状态的枚举。
         /// </summary>
         public enum ClientStatus
         {
             /// <summary>
-            /// 客户端并没有连接到SmartQQ。
+            ///     客户端并没有连接到SmartQQ。
             /// </summary>
             Idle,
 
             /// <summary>
-            /// 客户端正在登录。
+            ///     客户端正在登录。
             /// </summary>
             LoggingIn,
 
             /// <summary>
-            /// 客户端已登录到SmartQQ。
+            ///     客户端已登录到SmartQQ。
             /// </summary>
             Active
         }
 
         /// <summary>
-        /// 客户端当前状态。
+        ///     发送消息的目标类型。
         /// </summary>
-        public ClientStatus Status { get; private set; } = ClientStatus.Idle;
+        public enum TargetType
+        {
+            /// <summary>
+            ///     好友。
+            /// </summary>
+            Friend,
 
-        internal readonly HttpClient Client = new HttpClient();
+            /// <summary>
+            ///     群。
+            /// </summary>
+            Group,
 
-        // 事件
-        /// <summary>
-        /// 当二维码下载完毕时被引发。参数为二维码的绝对路径。
-        /// </summary>
-        public event EventHandler<string> QrCodeDownloaded;
+            /// <summary>
+            ///     讨论组。
+            /// </summary>
+            Discussion
+        }
 
-        /// <summary>
-        /// 当二维码失效时被引发。此时需要重新调用Start()。参数为旧二维码的绝对路径。
-        /// </summary>
-        public event EventHandler<string> QrCodeExpired;
-
-        /// <summary>
-        /// 当登录失败时被引发。二维码失效的情况不包括在内。
-        /// </summary>
-        public event EventHandler<Exception> LoginFailed;
-
-        /// <summary>
-        /// 当需要在浏览器中手动登录时被引发。参数为登录网址。
-        /// </summary>
-        [Obsolete]
-        public event EventHandler<string> ExtraLoginNeeded;
-
-        private bool _extraLoginNeededRaised;
-
-        /// <summary>
-        /// 登录完成后被引发。
-        /// </summary>
-        public event EventHandler LoginCompleted;
-
-        /// <summary>
-        /// 接收到好友消息时被引发。
-        /// </summary>
-        public event EventHandler<FriendMessage> FriendMessageReceived;
-
-        /// <summary>
-        /// 接收到群消息时被引发。
-        /// </summary>
-        public event EventHandler<GroupMessage> GroupMessageReceived;
-
-        /// <summary>
-        /// 接收到讨论组消息时被引发。
-        /// </summary>
-        public event EventHandler<DiscussionMessage> DiscussionMessageReceived;
-
-        // 二维码验证参数
-        private string _qrsig;
-
-        // 鉴权参数
-        internal string Ptwebqq;
-        internal string Vfwebqq;
-        internal long Uin;
-        internal string Psessionid;
-        internal string Hash;
-
-        // 线程开关
-        private volatile bool _pollStarted;
+        internal const long ClientId = 53999199;
+        internal static readonly ILog Logger = LogManager.GetLogger(typeof(DumbQQClient));
+        private static long _messageId = 43690001;
 
         // 数据缓存
         private readonly CacheDepot _cache;
-        private readonly Cache<FriendInfo> _myInfoCache;
-        private readonly CacheDictionary<long, long> _qqNumberCache;
+        private readonly CacheDictionary<long, DiscussionInfo> _discussionInfoCache;
         private readonly CacheDictionary<long, FriendInfo> _friendInfoCache;
         private readonly CacheDictionary<long, GroupInfo> _groupInfoCache;
-        private readonly CacheDictionary<long, DiscussionInfo> _discussionInfoCache;
+        private readonly Cache<FriendInfo> _myInfoCache;
+        private readonly CacheDictionary<long, long> _qqNumberCache;
+
+        internal readonly HttpClient Client = new HttpClient();
+
+        private bool _extraLoginNeededRaised;
 
         // 临时变量
         private string _lastQrCodePath;
 
-        // ---------- 查询方法 ----------
+        // 线程开关
+        private volatile bool _pollStarted;
+
+        // 二维码验证参数
+        private string _qrsig;
+        internal string Hash;
+        internal string Psessionid;
+
+        // 鉴权参数
+        internal string Ptwebqq;
+        internal long Uin;
+        internal string Vfwebqq;
 
         /// <summary>
-        /// 获取详细信息。
+        ///     初始化一个DumbQQClient。
+        /// </summary>
+        public DumbQQClient()
+        {
+            XmlConfigurator.Configure();
+            Client.Request.UserAgent = ApiUrl.UserAgent;
+            Client.Request.PersistCookies = true;
+            Client.Request.KeepAlive = true;
+            Client.Request.Accept = null;
+            Client.ThrowExceptionOnHttpError = false;
+            _cache = new CacheDepot(CacheTimeout);
+            _myInfoCache = new Cache<FriendInfo>(CacheTimeout);
+            _qqNumberCache = new CacheDictionary<long, long>(CacheTimeout);
+            _friendInfoCache = new CacheDictionary<long, FriendInfo>(CacheTimeout);
+            _groupInfoCache = new CacheDictionary<long, GroupInfo>(CacheTimeout);
+            _discussionInfoCache = new CacheDictionary<long, DiscussionInfo>(CacheTimeout);
+        }
+
+        /// <summary>
+        ///     缓存的超时时间。
+        /// </summary>
+        public TimeSpan CacheTimeout { get; set; } = TimeSpan.FromHours(2);
+
+        /// <summary>
+        ///     发送消息的重试次数。
+        /// </summary>
+        public int RetryTimes { get; set; } = 5;
+
+        /// <summary>
+        ///     客户端当前状态。
+        /// </summary>
+        public ClientStatus Status { get; private set; } = ClientStatus.Idle;
+
+        /// <summary>
+        ///     当二维码下载完毕时被引发。参数为二维码的绝对路径。
+        /// </summary>
+        public event EventHandler<string> QrCodeDownloaded;
+
+        /// <summary>
+        ///     当二维码失效时被引发。此时需要重新调用Start()。参数为旧二维码的绝对路径。
+        /// </summary>
+        public event EventHandler<string> QrCodeExpired;
+
+        /// <summary>
+        ///     当登录失败时被引发。二维码失效的情况不包括在内。
+        /// </summary>
+        public event EventHandler<Exception> LoginFailed;
+
+        /// <summary>
+        ///     当需要在浏览器中手动登录时被引发。参数为登录网址。
+        /// </summary>
+        [Obsolete]
+        public event EventHandler<string> ExtraLoginNeeded;
+
+        /// <summary>
+        ///     登录完成后被引发。
+        /// </summary>
+        public event EventHandler LoginCompleted;
+
+        /// <summary>
+        ///     接收到好友消息时被引发。
+        /// </summary>
+        public event EventHandler<FriendMessage> FriendMessageReceived;
+
+        /// <summary>
+        ///     接收到群消息时被引发。
+        /// </summary>
+        public event EventHandler<GroupMessage> GroupMessageReceived;
+
+        /// <summary>
+        ///     接收到讨论组消息时被引发。
+        /// </summary>
+        public event EventHandler<DiscussionMessage> DiscussionMessageReceived;
+
+        /// <summary>
+        ///     获取详细信息。
         /// </summary>
         /// <typeparam name="TInfo">详细信息的类型。</typeparam>
         /// <param name="id">用于查询详细信息的编号。</param>
@@ -185,7 +222,7 @@ namespace DumbQQ.Client
         }
 
         /// <summary>
-        /// 获取好友的详细信息。
+        ///     获取好友的详细信息。
         /// </summary>
         /// <param name="friend">好友。</param>
         /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
@@ -194,7 +231,7 @@ namespace DumbQQ.Client
             => GetInfoOfType<FriendInfo>(friend.Id, forceRefresh);
 
         /// <summary>
-        /// 获取群的详细信息。
+        ///     获取群的详细信息。
         /// </summary>
         /// <param name="group">群。</param>
         /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
@@ -203,7 +240,7 @@ namespace DumbQQ.Client
             => GetInfoOfType<GroupInfo>(group.Code, forceRefresh);
 
         /// <summary>
-        /// 获取讨论组的详细信息。
+        ///     获取讨论组的详细信息。
         /// </summary>
         /// <param name="discussion">讨论组。</param>
         /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
@@ -212,7 +249,7 @@ namespace DumbQQ.Client
             => GetInfoOfType<DiscussionInfo>(discussion.Id, forceRefresh);
 
         /// <summary>
-        /// 获取当前登录账户的详细信息。
+        ///     获取当前登录账户的详细信息。
         /// </summary>
         /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
         /// <returns>详细信息。</returns>
@@ -233,7 +270,7 @@ namespace DumbQQ.Client
         }
 
         /// <summary>
-        /// 查询列表。
+        ///     查询列表。
         /// </summary>
         /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
         /// <returns></returns>
@@ -290,7 +327,7 @@ namespace DumbQQ.Client
         }
 
         /// <summary>
-        /// 根据ID获取QQ号。
+        ///     根据ID获取QQ号。
         /// </summary>
         /// <param name="userId">用户ID。</param>
         /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
@@ -300,13 +337,11 @@ namespace DumbQQ.Client
             Logger.Debug("开始获取QQ号");
 
             if (!forceRefresh)
-            {
                 if (_qqNumberCache.ContainsKey(userId))
                 {
                     Logger.Debug("加载了缓存的QQ号");
                     return _qqNumberCache[userId];
                 }
-            }
 
             var qq =
             ((JObject)
@@ -317,7 +352,7 @@ namespace DumbQQ.Client
         }
 
         /// <summary>
-        /// 根据消息获取发送者QQ号。
+        ///     根据消息获取发送者QQ号。
         /// </summary>
         /// <param name="message">消息。</param>
         /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
@@ -326,38 +361,15 @@ namespace DumbQQ.Client
             => GetQQNumberOf(message.UserId, forceRefresh);
 
         /// <summary>
-        /// 获取用户QQ号。
+        ///     获取用户QQ号。
         /// </summary>
         /// <param name="user">用户</param>
         /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
         /// <returns>QQ号。</returns>
         public long GetQQNumberOf(IUser user, bool forceRefresh = false) => GetQQNumberOf(user.Id, forceRefresh);
 
-        // ---------- 发送方法 ----------
-
         /// <summary>
-        /// 发送消息的目标类型。
-        /// </summary>
-        public enum TargetType
-        {
-            /// <summary>
-            /// 好友。
-            /// </summary>
-            Friend,
-
-            /// <summary>
-            /// 群。
-            /// </summary>
-            Group,
-
-            /// <summary>
-            /// 讨论组。
-            /// </summary>
-            Discussion
-        }
-
-        /// <summary>
-        /// 发送消息。
+        ///     发送消息。
         /// </summary>
         /// <param name="type">目标类型。</param>
         /// <param name="id">用于发送的ID。</param>
@@ -406,9 +418,7 @@ namespace DumbQQ.Client
             }, RetryTimes);
 
             if (response.StatusCode != HttpStatusCode.OK)
-            {
                 Logger.Error("消息发送失败，HTTP返回码" + (int) response.StatusCode);
-            }
 
             var status = JObject.Parse(response.RawText)["retcode"].ToObject<int?>();
             if (status != null && status == 0)
@@ -423,43 +433,22 @@ namespace DumbQQ.Client
         }
 
         /// <summary>
-        /// 发送消息。
+        ///     发送消息。
         /// </summary>
         /// <param name="target">目标。</param>
         /// <param name="content">消息内容。</param>
         public void Message(IMessageable target, string content) => Message(target.TargetType, target.Id, content);
 
         /// <summary>
-        /// 回复消息。
+        ///     回复消息。
         /// </summary>
         /// <param name="message">原消息。</param>
         /// <param name="content">回复内容。</param>
         public void ReplyTo(IMessage message, string content) =>
             Message(message.Type, message.RepliableId, content);
 
-        // ---------- 基础方法 ----------
-
         /// <summary>
-        /// 初始化一个DumbQQClient。
-        /// </summary>
-        public DumbQQClient()
-        {
-            XmlConfigurator.Configure();
-            Client.Request.UserAgent = ApiUrl.UserAgent;
-            Client.Request.PersistCookies = true;
-            Client.Request.KeepAlive = true;
-            Client.Request.Accept = null;
-            Client.ThrowExceptionOnHttpError = false;
-            _cache = new CacheDepot(CacheTimeout);
-            _myInfoCache = new Cache<FriendInfo>(CacheTimeout);
-            _qqNumberCache = new CacheDictionary<long, long>(CacheTimeout);
-            _friendInfoCache = new CacheDictionary<long, FriendInfo>(CacheTimeout);
-            _groupInfoCache = new CacheDictionary<long, GroupInfo>(CacheTimeout);
-            _discussionInfoCache = new CacheDictionary<long, DiscussionInfo>(CacheTimeout);
-        }
-
-        /// <summary>
-        /// 异步地连接到SmartQQ。
+        ///     异步地连接到SmartQQ。
         /// </summary>
         public async void StartAsync()
         {
@@ -494,7 +483,7 @@ namespace DumbQQ.Client
         }
 
         /// <summary>
-        /// 连接到SmartQQ。
+        ///     连接到SmartQQ。
         /// </summary>
         public void Start()
         {
@@ -517,7 +506,7 @@ namespace DumbQQ.Client
                     catch (HttpRequestException e)
                     {
                         if (!(e.InnerException is HttpException) ||
-                            ((HttpException)e.InnerException).StatusCode != HttpStatusCode.GatewayTimeout)
+                            ((HttpException) e.InnerException).StatusCode != HttpStatusCode.GatewayTimeout)
                             Logger.Error(e);
                     }
                     catch (Exception ex)
@@ -693,22 +682,18 @@ namespace DumbQQ.Client
         }
 
         /// <summary>
-        /// 停止通讯。
+        ///     停止通讯。
         /// </summary>
         public void Close()
         {
             _pollStarted = false;
         }
 
-        // ---------- 奇怪的方法 ----------
-
         internal JObject GetResponseJson(HttpResponse response)
         {
             if (response.StatusCode != HttpStatusCode.OK)
-            {
                 throw new HttpRequestException("请求失败，Http返回码" + (int) response.StatusCode + "(" + response.StatusCode +
                                                ")", new HttpException(HttpStatusCode.GatewayTimeout, "Gateway Timeout"));
-            }
             var json = JObject.Parse(response.RawText);
             var retCode = json["retcode"].Value<int?>();
             switch (retCode)
@@ -722,7 +707,9 @@ namespace DumbQQ.Client
                     if (!_extraLoginNeededRaised)
                     {
                         _extraLoginNeededRaised = true;
+#pragma warning disable 612
                         ExtraLoginNeeded?.Invoke(this, @"http://w.qq.com");
+#pragma warning restore 612
                     }
                     break;
                 default:
@@ -765,34 +752,12 @@ namespace DumbQQ.Client
 
     public abstract class Cache
     {
-        protected object Value { get; set; }
-        protected bool IsValid;
-        protected readonly Timer Timer;
         protected readonly TimeSpan Timeout;
+        protected readonly Timer Timer;
+        protected bool IsValid;
 
         /// <summary>
-        /// 尝试取得缓存的值。
-        /// </summary>
-        /// <param name="target">值的赋值目标。</param>
-        /// <returns>值是否有效。</returns>
-        public bool TryGetValue<T>(out T target)
-        {
-            target = (T) Value;
-            return IsValid;
-        }
-
-        /// <summary>
-        /// 设置缓存的值并重置过期计时器。
-        /// </summary>
-        /// <param name="target">值</param>
-        public void SetValue(object target)
-        {
-            Value = target;
-            Timer.Change(Timeout, System.Threading.Timeout.InfiniteTimeSpan);
-        }
-
-        /// <summary>
-        /// 初始化一个缓存对象。
+        ///     初始化一个缓存对象。
         /// </summary>
         /// <param name="timeout">表示缓存的超时时间。</param>
         protected Cache(TimeSpan timeout)
@@ -804,16 +769,47 @@ namespace DumbQQ.Client
                 Value = null;
             }, null, Timeout, System.Threading.Timeout.InfiniteTimeSpan);
         }
+
+        protected object Value { get; set; }
+
+        /// <summary>
+        ///     尝试取得缓存的值。
+        /// </summary>
+        /// <param name="target">值的赋值目标。</param>
+        /// <returns>值是否有效。</returns>
+        public bool TryGetValue<T>(out T target)
+        {
+            target = (T) Value;
+            return IsValid;
+        }
+
+        /// <summary>
+        ///     设置缓存的值并重置过期计时器。
+        /// </summary>
+        /// <param name="target">值</param>
+        public void SetValue(object target)
+        {
+            Value = target;
+            Timer.Change(Timeout, System.Threading.Timeout.InfiniteTimeSpan);
+        }
     }
 
     /// <summary>
-    /// 缓存数据。
+    ///     缓存数据。
     /// </summary>
     /// <typeparam name="T"></typeparam>
     internal class Cache<T> : Cache where T : class
     {
         /// <summary>
-        /// 尝试取得缓存的值。
+        ///     初始化一个缓存对象。
+        /// </summary>
+        /// <param name="timeout">表示缓存的超时时间。</param>
+        public Cache(TimeSpan timeout) : base(timeout)
+        {
+        }
+
+        /// <summary>
+        ///     尝试取得缓存的值。
         /// </summary>
         /// <param name="target">值的赋值目标。</param>
         /// <returns>值是否有效。</returns>
@@ -824,7 +820,7 @@ namespace DumbQQ.Client
         }
 
         /// <summary>
-        /// 设置缓存的值并重置过期计时器。
+        ///     设置缓存的值并重置过期计时器。
         /// </summary>
         /// <param name="target">值</param>
         public void SetValue(T target)
@@ -832,18 +828,10 @@ namespace DumbQQ.Client
             Value = target;
             Timer.Change(Timeout, System.Threading.Timeout.InfiniteTimeSpan);
         }
-
-        /// <summary>
-        /// 初始化一个缓存对象。
-        /// </summary>
-        /// <param name="timeout">表示缓存的超时时间。</param>
-        public Cache(TimeSpan timeout) : base(timeout)
-        {
-        }
     }
 
     /// <summary>
-    /// 放一堆不同类型的东西的缓存的字典。
+    ///     放一堆不同类型的东西的缓存的字典。
     /// </summary>
     internal class CacheDepot
     {
@@ -864,7 +852,7 @@ namespace DumbQQ.Client
     }
 
     /// <summary>
-    /// 缓存词典（会定时清空内容）。
+    ///     缓存词典（会定时清空内容）。
     /// </summary>
     /// <typeparam name="TKey">键的类型。</typeparam>
     /// <typeparam name="TValue">值的类型。</typeparam>
@@ -880,20 +868,20 @@ namespace DumbQQ.Client
     }
 
     /// <summary>
-    /// 因API错误产生的异常。
+    ///     因API错误产生的异常。
     /// </summary>
     public class ApiException : Exception
     {
-        public int ErrorCode { get; }
-        public override string Message => "API错误，返回码" + ErrorCode;
-
         /// <summary>
-        /// 声明一个API异常。
+        ///     声明一个API异常。
         /// </summary>
         /// <param name="errorCode"></param>
         public ApiException(int errorCode)
         {
             ErrorCode = errorCode;
         }
+
+        public int ErrorCode { get; }
+        public override string Message => "API错误，返回码" + ErrorCode;
     }
 }

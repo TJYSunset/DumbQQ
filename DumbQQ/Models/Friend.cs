@@ -8,39 +8,41 @@ using Newtonsoft.Json.Linq;
 namespace DumbQQ.Models
 {
     /// <summary>
-    /// 好友（不含详细信息）。
+    ///     好友（不含详细信息）。
     /// </summary>
     public class Friend : IListable, IUser, IMessageable
     {
         /// <summary>
-        /// 用于发送信息的编号。不等于QQ号。
-        /// </summary>
-        [JsonProperty("userId")]
-        public long Id { get; set; }
-
-        /// <summary>
-        /// 备注姓名。
+        ///     备注姓名。
         /// </summary>
         [JsonProperty("markname")]
         public string Alias { get; set; }
 
         /// <summary>
-        /// 昵称。
-        /// </summary>
-        [JsonProperty("nickname")]
-        public string Nickname { get; set; }
-
-        /// <summary>
-        /// QQ会员状态。
+        ///     QQ会员状态。
         /// </summary>
         [JsonProperty("vip")]
         public bool IsVip { get; set; }
 
         /// <summary>
-        /// 会员等级。
+        ///     会员等级。
         /// </summary>
         [JsonProperty("vipLevel")]
         public int VipLevel { get; set; }
+
+        DumbQQClient.TargetType IMessageable.TargetType => DumbQQClient.TargetType.Friend;
+
+        /// <summary>
+        ///     用于发送信息的编号。不等于QQ号。
+        /// </summary>
+        [JsonProperty("userId")]
+        public long Id { get; set; }
+
+        /// <summary>
+        ///     昵称。
+        /// </summary>
+        [JsonProperty("nickname")]
+        public string Nickname { get; set; }
 
         internal static List<Friend> GetList(DumbQQClient client)
         {
@@ -60,7 +62,5 @@ namespace DumbQQ.Models
             var response = client.Client.Get(ApiUrl.GetFriendInfo, id, client.Vfwebqq, client.Psessionid);
             return ((JObject) client.GetResponseJson(response)["result"]).ToObject<FriendInfo>();
         }
-
-        DumbQQClient.TargetType IMessageable.TargetType => DumbQQClient.TargetType.Friend;
     }
 }

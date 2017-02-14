@@ -7,7 +7,7 @@ namespace DumbQQ.Utils
         private static readonly Random _rand = new Random();
 
         /// <summary>
-        /// 返回一个随机int。
+        ///     返回一个随机int。
         /// </summary>
         /// <returns>随机数。</returns>
         public static long GetRandomInt()
@@ -16,7 +16,7 @@ namespace DumbQQ.Utils
         }
 
         /// <summary>
-        /// 返回一个随机double。
+        ///     返回一个随机double。
         /// </summary>
         /// <returns>随机数。</returns>
         public static double GetRandomDouble()

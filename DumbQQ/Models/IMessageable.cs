@@ -3,7 +3,7 @@
 namespace DumbQQ.Models
 {
     /// <summary>
-    /// 表示可以向此对象发送消息的接口。
+    ///     表示可以向此对象发送消息的接口。
     /// </summary>
     public interface IMessageable
     {

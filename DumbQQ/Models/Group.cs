@@ -7,33 +7,35 @@ using Newtonsoft.Json.Linq;
 namespace DumbQQ.Models
 {
     /// <summary>
-    /// 群（不含详细信息）。
+    ///     群（不含详细信息）。
     /// </summary>
     public class Group : IListable, IMessageable
     {
         /// <summary>
-        /// 用于发送信息的编号。不等于群号。
-        /// </summary>
-        [JsonProperty("gid")]
-        public long Id { get; set; }
-
-        /// <summary>
-        /// 名称。
+        ///     名称。
         /// </summary>
         [JsonProperty("name")]
         public string Name { get; set; }
 
         /// <summary>
-        /// 意义尚不明确。
+        ///     意义尚不明确。
         /// </summary>
         [JsonProperty("flag")]
         public long Flag { get; set; }
 
         /// <summary>
-        /// 用于查询详细信息信息的编号。
+        ///     用于查询详细信息信息的编号。
         /// </summary>
         [JsonProperty("code")]
         public long Code { get; set; }
+
+        /// <summary>
+        ///     用于发送信息的编号。不等于群号。
+        /// </summary>
+        [JsonProperty("gid")]
+        public long Id { get; set; }
+
+        DumbQQClient.TargetType IMessageable.TargetType => DumbQQClient.TargetType.Group;
 
         internal static List<Group> GetList(DumbQQClient client)
         {
@@ -85,7 +87,5 @@ namespace DumbQQ.Models
             }
             return info;
         }
-
-        DumbQQClient.TargetType IMessageable.TargetType => DumbQQClient.TargetType.Group;
     }
 }
