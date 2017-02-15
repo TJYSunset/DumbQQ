@@ -43,15 +43,55 @@ namespace DumbQQConsoleDemo
                 {
                     // ignore
                 }
+                Console.WriteLine("是否要导出cookie以便下次登录？[y/n]");
+                var response = Console.ReadLine();
+                if (response.IsMatch(@"^\s*(y|yes)\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) Client.Start();
+                {
+                    try
+                    {
+                        File.WriteAllText("cookies.json", Client.DumpCookies());
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("未成功导出cookie，抛出异常：" + ex);
+                    }
+                }
                 Console.WriteLine("欢迎，" + Client.GetInfoAboutMe().Nickname + "！");
             };
             Client.GroupMessageReceived += (sender, message) =>
             {
+                Console.WriteLine("[私聊消息]" + message.Content);
+            };
+            Client.GroupMessageReceived += (sender, message) =>
+            {
+                Console.WriteLine("[群消息]" + message.Content);
                 if (message.Content.IsMatch(@"^Knock knock[\.!]?$",
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase))
                     Client.ReplyTo(message, "Who's there?");
             };
-            Client.Start();
+            Client.GroupMessageReceived += (sender, message) =>
+            {
+                Console.WriteLine("[讨论组消息]" + message.Content);
+            };
+            if (File.Exists("cookies.json"))
+            {
+                Console.WriteLine("检测到有导出的cookie，是否要通过cookie登录？[y/n]");
+                var response = Console.ReadLine();
+                if (!response.IsMatch(@"^\s*(y|yes)\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) Client.Start();
+                try
+                {
+                    var save = File.ReadAllText("cookies.json");
+                    Client.Start(save);
+                }
+                catch
+                {
+                    Client.Start();
+                }
+            }
+            else
+            {
+                Client.Start();
+            }
         }
     }
 }

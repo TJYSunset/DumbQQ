@@ -2,7 +2,7 @@
 
 namespace DumbQQ.Utils
 {
-    public static class RandomHelper
+    internal static class RandomHelper
     {
         private static readonly Random _rand = new Random();
 

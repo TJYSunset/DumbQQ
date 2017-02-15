@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DumbQQ.Utils
 {
-    public static class StringHelper
+    internal static class StringHelper
     {
         /// <summary>
         ///     将一个消息JSON中的节点转换为表情的文字描述或文字本身。
