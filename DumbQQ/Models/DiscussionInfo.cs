@@ -6,7 +6,7 @@ namespace DumbQQ.Models
     /// <summary>
     ///     讨论组详细信息。
     /// </summary>
-    public class DiscussionInfo : IInfo
+    internal class DiscussionInfo
     {
         /// <summary>
         ///     可用于发送消息的编号。
@@ -24,6 +24,6 @@ namespace DumbQQ.Models
         ///     成员。
         /// </summary>
         [JsonProperty("users")]
-        public List<DiscussionMember> Members { get; set; }
+        public List<DiscussionMember> Members { get; set; } = new List<DiscussionMember>();
     }
 }

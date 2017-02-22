@@ -5,7 +5,6 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using DumbQQ.Constants;
 using DumbQQ.Models;
 using DumbQQ.Utils;
@@ -42,6 +41,14 @@ namespace DumbQQ.Client
             Active
         }
 
+        public enum LoginResult
+        {
+            Succeeded,
+            QrCodeExpired,
+            CookieExpired,
+            Failed
+        }
+
         /// <summary>
         ///     发送消息的目标类型。
         /// </summary>
@@ -69,16 +76,10 @@ namespace DumbQQ.Client
 
         // 数据缓存
         private readonly CacheDepot _cache;
-        private readonly CacheDictionary<long, DiscussionInfo> _discussionInfoCache;
-        private readonly CacheDictionary<long, FriendInfo> _friendInfoCache;
-        private readonly CacheDictionary<long, GroupInfo> _groupInfoCache;
         private readonly Cache<FriendInfo> _myInfoCache;
         private readonly CacheDictionary<long, long> _qqNumberCache;
 
         internal readonly HttpClient Client = new HttpClient();
-
-        // 临时变量
-        private string _lastQrCodePath;
 
         // 线程开关
         private volatile bool _pollStarted;
@@ -107,10 +108,17 @@ namespace DumbQQ.Client
             _cache = new CacheDepot(CacheTimeout);
             _myInfoCache = new Cache<FriendInfo>(CacheTimeout);
             _qqNumberCache = new CacheDictionary<long, long>(CacheTimeout);
-            _friendInfoCache = new CacheDictionary<long, FriendInfo>(CacheTimeout);
-            _groupInfoCache = new CacheDictionary<long, GroupInfo>(CacheTimeout);
-            _discussionInfoCache = new CacheDictionary<long, DiscussionInfo>(CacheTimeout);
         }
+
+        public List<ChatHistory> RecentConversations => GetListOf<ChatHistory>();
+
+        public List<Discussion> Discussions => GetListOf<Discussion>();
+
+        public List<Friend> Friends => GetListOf<Friend>();
+
+        public List<FriendCategory> Categories => GetListOf<FriendCategory>();
+
+        public List<Group> Groups => GetListOf<Group>();
 
         /// <summary>
         ///     缓存的超时时间。
@@ -127,31 +135,114 @@ namespace DumbQQ.Client
         /// </summary>
         public ClientStatus Status { get; private set; } = ClientStatus.Idle;
 
-        /// <summary>
-        ///     当二维码下载完毕时被引发。参数为二维码的绝对路径。
-        /// </summary>
-        public event EventHandler<string> QrCodeDownloaded;
+        private FriendInfo MyInfo
+        {
+            get
+            {
+                if (Status != ClientStatus.Active)
+                    throw new InvalidOperationException("尚未登录，无法进行该操作");
+                FriendInfo cachedInfo;
+                if (_myInfoCache.TryGetValue(out cachedInfo))
+                    return cachedInfo;
+                Logger.Debug("开始获取登录账户信息");
+
+                var response = Client.Get(ApiUrl.GetAccountInfo);
+                var info = ((JObject) GetResponseJson(response)["result"]).ToObject<FriendInfo>();
+                _myInfoCache.SetValue(info);
+                return info;
+            }
+        }
 
         /// <summary>
-        ///     当二维码失效时被引发。此时需要重新调用Start()。参数为旧二维码的绝对路径。
+        ///     已登录账户的编号。
         /// </summary>
-        public event EventHandler<string> QrCodeExpired;
+        public long Id => MyInfo.Id;
 
         /// <summary>
-        ///     当登录失败时被引发。二维码失效的情况不包括在内。
+        ///     已登录账户的昵称。
         /// </summary>
-        public event EventHandler<Exception> LoginFailed;
+        public string Nickname => MyInfo.Nickname;
+
+        /// <summary>
+        ///     已登录账户的个性签名。
+        /// </summary>
+        public string Bio => MyInfo.Bio;
+
+        /// <summary>
+        ///     已登录账户的生日。
+        /// </summary>
+        public Birthday Birthday => MyInfo.Birthday;
+
+        /// <summary>
+        ///     已登录账户的座机号码。
+        /// </summary>
+        public string Phone => MyInfo.Phone;
+
+        /// <summary>
+        ///     已登录账户的手机号码。
+        /// </summary>
+        public string Cellphone => MyInfo.Cellphone;
+
+        /// <summary>
+        ///     已登录账户的邮箱地址。
+        /// </summary>
+        public string Email => MyInfo.Email;
+
+        /// <summary>
+        ///     已登录账户的职业。
+        /// </summary>
+        public string Job => MyInfo.Job;
+
+        /// <summary>
+        ///     已登录账户的个人主页。
+        /// </summary>
+        public string Homepage => MyInfo.Homepage;
+
+        /// <summary>
+        ///     已登录账户的学校。
+        /// </summary>
+        public string School => MyInfo.School;
+
+        /// <summary>
+        ///     已登录账户的国家。
+        /// </summary>
+        public string Country => MyInfo.Country;
+
+        /// <summary>
+        ///     已登录账户的省份。
+        /// </summary>
+        public string Province => MyInfo.Province;
+
+        /// <summary>
+        ///     已登录账户的城市。
+        /// </summary>
+        public string City => MyInfo.City;
+
+        /// <summary>
+        ///     已登录账户的性别。
+        /// </summary>
+        public string Gender => MyInfo.Gender;
+
+        /// <summary>
+        ///     已登录账户的生肖。
+        /// </summary>
+        public int Shengxiao => MyInfo.Shengxiao;
+
+        /// <summary>
+        ///     已登录账户的某信息字段。意义暂不明确。
+        /// </summary>
+        public string Personal => MyInfo.Personal;
+
+        /// <summary>
+        ///     已登录账户的某信息字段。意义暂不明确。
+        /// </summary>
+        public int VipInfo => MyInfo.VipInfo;
 
         /// <summary>
         ///     当需要在浏览器中手动登录时被引发。参数为登录网址。
         /// </summary>
         [Obsolete]
         public event EventHandler<string> ExtraLoginNeeded;
-
-        /// <summary>
-        ///     登录完成后被引发。
-        /// </summary>
-        public event EventHandler LoginCompleted;
 
         /// <summary>
         ///     接收到好友消息时被引发。
@@ -169,133 +260,24 @@ namespace DumbQQ.Client
         public event EventHandler<DiscussionMessage> DiscussionMessageReceived;
 
         /// <summary>
-        ///     获取详细信息。
+        ///     发出消息时被引发。适合用于在控制台打印发送消息的回显。
         /// </summary>
-        /// <typeparam name="TInfo">详细信息的类型。</typeparam>
-        /// <param name="id">用于查询详细信息的编号。</param>
-        /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
-        /// <returns>详细信息。</returns>
-        public TInfo GetInfoOfType<TInfo>(long id, bool forceRefresh = false) where TInfo : class, IInfo
-        {
-            if (Status != ClientStatus.Active)
-                throw new InvalidOperationException("尚未登录，无法进行该操作");
-            TInfo result = null;
-            if (!forceRefresh)
-            {
-                switch (typeof(TInfo).Name)
-                {
-                    case "FriendInfo":
-                        if (_friendInfoCache.ContainsKey(id))
-                            result = (TInfo) (object) _friendInfoCache[id];
-                        break;
-                    case "GroupInfo":
-                        if (_groupInfoCache.ContainsKey(id))
-                            result = (TInfo) (object) _groupInfoCache[id];
-                        break;
-                    case "DiscussionInfo":
-                        if (_discussionInfoCache.ContainsKey(id))
-                            result = (TInfo) (object) _discussionInfoCache[id];
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-                if (result != null) return result;
-            }
-            // 为了性能不使用reflection
-            switch (typeof(TInfo).Name)
-            {
-                case "FriendInfo":
-                    result = (TInfo) (object) Friend.GetInfo(this, id);
-                    _friendInfoCache.Put(id, (FriendInfo) (object) result);
-                    break;
-                case "GroupInfo":
-                    result = (TInfo) (object) Group.GetInfo(this, id);
-                    _groupInfoCache.Put(id, (GroupInfo) (object) result);
-                    break;
-                case "DiscussionInfo":
-                    result = (TInfo) (object) Discussion.GetInfo(this, id);
-                    _discussionInfoCache.Put(id, (DiscussionInfo) (object) result);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-            return result;
-        }
-
-        /// <summary>
-        ///     获取好友的详细信息。
-        /// </summary>
-        /// <param name="friend">好友。</param>
-        /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
-        /// <returns>详细信息。</returns>
-        public FriendInfo GetInfoAbout(Friend friend, bool forceRefresh = false)
-            => GetInfoOfType<FriendInfo>(friend.Id, forceRefresh);
-
-        /// <summary>
-        ///     获取群的详细信息。
-        /// </summary>
-        /// <param name="group">群。</param>
-        /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
-        /// <returns>详细信息。</returns>
-        public GroupInfo GetInfoAbout(Group group, bool forceRefresh = false)
-            => GetInfoOfType<GroupInfo>(group.Code, forceRefresh);
-
-        /// <summary>
-        ///     获取讨论组的详细信息。
-        /// </summary>
-        /// <param name="discussion">讨论组。</param>
-        /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
-        /// <returns>详细信息。</returns>
-        public DiscussionInfo GetInfoAbout(Discussion discussion, bool forceRefresh = false)
-            => GetInfoOfType<DiscussionInfo>(discussion.Id, forceRefresh);
-
-        /// <summary>
-        ///     获取当前登录账户的详细信息。
-        /// </summary>
-        /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
-        /// <returns>详细信息。</returns>
-        public FriendInfo GetInfoAboutMe(bool forceRefresh = false)
-        {
-            if (Status != ClientStatus.Active)
-                throw new InvalidOperationException("尚未登录，无法进行该操作");
-            if (!forceRefresh)
-            {
-                FriendInfo cachedInfo;
-                if (_myInfoCache.TryGetValue(out cachedInfo))
-                    return cachedInfo;
-            }
-            Logger.Debug("开始获取登录账户信息");
-
-            var response = Client.Get(ApiUrl.GetAccountInfo);
-            var info = ((JObject) GetResponseJson(response)["result"]).ToObject<FriendInfo>();
-            _myInfoCache.SetValue(info);
-            return info;
-        }
+        public event EventHandler<MessageEchoEventArgs> MessageEcho;
 
         /// <summary>
         ///     查询列表。
         /// </summary>
-        /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
         /// <returns></returns>
-        public List<T> GetListOf<T>(bool forceRefresh = false) where T : class, IListable
+        internal List<T> GetListOf<T>() where T : class, IListable
         {
             if (Status != ClientStatus.Active)
                 throw new InvalidOperationException("尚未登录，无法进行该操作");
-            if (!forceRefresh)
+            List<T> tempData;
+            if (_cache.GetCache<List<T>>().TryGetValue(out tempData))
             {
-                List<T> tempData;
-                if (_cache.GetCache<List<T>>().TryGetValue(out tempData))
-                {
-                    Logger.Debug("加载了缓存的" + typeof(T).Name + "列表");
-                    return tempData;
-                }
+                Logger.Debug("加载了缓存的" + typeof(T).Name + "列表");
+                return tempData;
             }
-//            try
-//            {
-//                var result =
-//                    (List<T>)
-//                    typeof(T).GetMethod(@"GetList", BindingFlags.NonPublic | BindingFlags.Static)
-//                        .Invoke(null, new object[] {this});
             // 为了性能所以不使用reflection而采用硬编码
             List<T> result;
             switch (typeof(T).Name)
@@ -323,32 +305,24 @@ namespace DumbQQ.Client
             }
             _cache.GetCache<List<T>>().SetValue(result);
             return result;
-//            }
-//            catch (TargetInvocationException ex)
-//            {
-//                if (ex.InnerException != null) throw ex.InnerException;
-//                throw;
-//            }
         }
 
         /// <summary>
         ///     根据ID获取QQ号。
         /// </summary>
         /// <param name="userId">用户ID。</param>
-        /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
         /// <returns>QQ号。</returns>
-        public long GetQQNumberOf(long userId, bool forceRefresh = false)
+        public long GetQQNumberOf(long userId)
         {
             if (Status != ClientStatus.Active)
                 throw new InvalidOperationException("尚未登录，无法进行该操作");
             Logger.Debug("开始获取QQ号");
 
-            if (!forceRefresh)
-                if (_qqNumberCache.ContainsKey(userId))
-                {
-                    Logger.Debug("加载了缓存的QQ号");
-                    return _qqNumberCache[userId];
-                }
+            if (_qqNumberCache.ContainsKey(userId))
+            {
+                Logger.Debug("加载了缓存的QQ号");
+                return _qqNumberCache[userId];
+            }
 
             var qq =
             ((JObject)
@@ -357,23 +331,6 @@ namespace DumbQQ.Client
             _qqNumberCache.Put(userId, qq);
             return qq;
         }
-
-        /// <summary>
-        ///     根据消息获取发送者QQ号。
-        /// </summary>
-        /// <param name="message">消息。</param>
-        /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
-        /// <returns>QQ号。</returns>
-        public long GetQQNumberOf(IMessage message, bool forceRefresh = false)
-            => GetQQNumberOf(message.UserId, forceRefresh);
-
-        /// <summary>
-        ///     获取用户QQ号。
-        /// </summary>
-        /// <param name="user">用户</param>
-        /// <param name="forceRefresh">指定是否要强制重新获取而不使用缓存。</param>
-        /// <returns>QQ号。</returns>
-        public long GetQQNumberOf(IUser user, bool forceRefresh = false) => GetQQNumberOf(user.Id, forceRefresh);
 
         /// <summary>
         ///     发送消息。
@@ -430,31 +387,38 @@ namespace DumbQQ.Client
                 Logger.Error("消息发送失败，HTTP返回码" + (int) response.StatusCode);
 
             var status = JObject.Parse(response.RawText)["retcode"].ToObject<int?>();
-            if (status != null && status == 0)
+            if (status != null && (status == 0 || status == 100100))
             {
                 Logger.Debug("消息发送成功");
+                if (MessageEcho == null) return;
+                MessageEchoEventArgs args;
+                switch (type)
+                {
+                    case TargetType.Friend:
+                    {
+                        args = new MessageEchoEventArgs(Friends.Find(_ => _.Id == id), content);
+                        break;
+                    }
+                    case TargetType.Group:
+                    {
+                        args = new MessageEchoEventArgs(Groups.Find(_ => _.Id == id), content);
+                        break;
+                    }
+                    case TargetType.Discussion:
+                    {
+                        args = new MessageEchoEventArgs(Discussions.Find(_ => _.Id == id), content);
+                        break;
+                    }
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(type), type, null);
+                }
+                MessageEcho(this, args);
             }
             else
             {
-                if (status != 100100)
-                    Logger.Error("消息发送失败，API返回码" + status);
+                Logger.Error("消息发送失败，API返回码" + status);
             }
         }
-
-        /// <summary>
-        ///     发送消息。
-        /// </summary>
-        /// <param name="target">目标。</param>
-        /// <param name="content">消息内容。</param>
-        public void Message(IMessageable target, string content) => Message(target.TargetType, target.Id, content);
-
-        /// <summary>
-        ///     回复消息。
-        /// </summary>
-        /// <param name="message">原消息。</param>
-        /// <param name="content">回复内容。</param>
-        public void ReplyTo(IMessage message, string content) =>
-            Message(message.Type, message.RepliableId, content);
 
         /// <summary>
         ///     导出当前cookie集合。
@@ -483,25 +447,10 @@ namespace DumbQQ.Client
         }
 
         /// <summary>
-        ///     异步地连接到SmartQQ。
-        /// </summary>
-        public async void StartAsync()
-        {
-            if (Status != ClientStatus.Idle)
-                throw new InvalidOperationException("已在登录或者已经登录，不能重复进行登录操作");
-            var succeeded = false;
-            await Task.Run(() => succeeded = Login());
-            if (!succeeded) return;
-            Status = ClientStatus.Active;
-            LoginCompleted?.Invoke(this, EventArgs.Empty);
-            StartMessageLoop();
-        }
-
-        /// <summary>
         ///     使用cookie连接到SmartQQ。
         /// </summary>
         /// <param name="json">由DumpCookies()导出的JSON字符串。</param>
-        public void Start(string json)
+        public LoginResult Start(string json)
         {
             if (Status != ClientStatus.Idle)
                 throw new InvalidOperationException("已在登录或者已经登录，不能重复进行登录操作");
@@ -527,43 +476,45 @@ namespace DumbQQ.Client
                 if (TestLogin())
                 {
                     Status = ClientStatus.Active;
-                    LoginCompleted?.Invoke(this, EventArgs.Empty);
                     StartMessageLoop();
+                    return LoginResult.Succeeded;
                 }
-                else
-                {
-                    Status = ClientStatus.Idle;
-                    LoginFailed?.Invoke(this, new HttpRequestException("登录失败，cookie疑似失效"));
-                }
+                Status = ClientStatus.Idle;
+                return LoginResult.CookieExpired;
             }
             catch (Exception ex)
             {
                 Status = ClientStatus.Idle;
                 Logger.Error("登录失败，抛出异常：" + ex);
-                LoginFailed?.Invoke(this, ex);
+                return LoginResult.Failed;
             }
         }
 
         /// <summary>
         ///     连接到SmartQQ。
         /// </summary>
-        public void Start()
+        public LoginResult Start(Action<string> qrCodeDownloadedCallback)
         {
             if (Status != ClientStatus.Idle)
                 throw new InvalidOperationException("已在登录或者已经登录，不能重复进行登录操作");
-            if (!Login()) return;
+            var result = Login(qrCodeDownloadedCallback);
+            if (result != LoginResult.Succeeded)
+            {
+                Status = ClientStatus.Idle;
+                return result;
+            }
             Status = ClientStatus.Active;
-            LoginCompleted?.Invoke(this, EventArgs.Empty);
             StartMessageLoop();
+            return result;
         }
 
         // 登录
-        private bool Login()
+        private LoginResult Login(Action<string> qrCodeDownloadedCallback)
         {
             try
             {
                 Status = ClientStatus.LoggingIn;
-                GetQrCode();
+                GetQrCode(qrCodeDownloadedCallback);
                 var url = VerifyQrCode();
                 GetPtwebqq(url);
                 GetVfwebqq();
@@ -573,25 +524,21 @@ namespace DumbQQ.Client
                     ExtraLoginNeeded?.Invoke(this, @"http://w.qq.com");
 #pragma warning restore 612
                 Hash = StringHelper.SomewhatHash(Uin, Ptwebqq);
-                return true;
+                return LoginResult.Succeeded;
             }
             catch (TimeoutException)
             {
-                Status = ClientStatus.Idle;
-                QrCodeExpired?.Invoke(this, _lastQrCodePath);
-                return false;
+                return LoginResult.QrCodeExpired;
             }
             catch (Exception ex)
             {
-                Status = ClientStatus.Idle;
                 Logger.Error("登录失败，抛出异常：" + ex);
-                LoginFailed?.Invoke(this, ex);
-                return false;
+                return LoginResult.Failed;
             }
         }
 
         // 获取二维码
-        private void GetQrCode()
+        private void GetQrCode(Action<string> qrCodeDownloadedCallback)
         {
             Logger.Debug("开始获取二维码");
             var filePath = Path.GetFullPath("qrcode" + RandomHelper.GetRandomInt() + ".png");
@@ -604,8 +551,7 @@ namespace DumbQQ.Client
                 break;
             }
             Logger.Info("二维码已保存在 " + filePath + " 文件中，请打开手机QQ并扫描二维码");
-            _lastQrCodePath = filePath;
-            QrCodeDownloaded?.Invoke(this, filePath);
+            qrCodeDownloadedCallback.Invoke(filePath);
         }
 
         private static int Hash33(string s)
@@ -719,7 +665,7 @@ namespace DumbQQ.Client
                         Logger.Error(ex);
                     }
                 }
-            }).Start();
+            }) {IsBackground = true}.Start();
         }
 
         // 拉取消息
@@ -739,20 +685,27 @@ namespace DumbQQ.Client
             var array = GetResponseJson(response)["result"] as JArray;
             for (var i = 0; array != null && i < array.Count; i++)
             {
-                var message = array[i] as JObject;
-                // ReSharper disable once PossibleNullReferenceException
+                var message = (JObject) array[i];
                 var type = message["poll_type"].Value<string>();
-                // ReSharper disable once SwitchStatementMissingSomeCases
                 switch (type)
                 {
                     case "message":
-                        FriendMessageReceived?.Invoke(this, message["value"].ToObject<FriendMessage>());
+                        var fmsg = message["value"].ToObject<FriendMessage>();
+                        fmsg.Client = this;
+                        FriendMessageReceived?.Invoke(this, fmsg);
                         break;
                     case "group_message":
-                        GroupMessageReceived?.Invoke(this, message["value"].ToObject<GroupMessage>());
+                        var gmsg = message["value"].ToObject<GroupMessage>();
+                        gmsg.Client = this;
+                        GroupMessageReceived?.Invoke(this, gmsg);
                         break;
                     case "discu_message":
-                        DiscussionMessageReceived?.Invoke(this, message["value"].ToObject<DiscussionMessage>());
+                        var dmsg = message["value"].ToObject<DiscussionMessage>();
+                        dmsg.Client = this;
+                        DiscussionMessageReceived?.Invoke(this, dmsg);
+                        break;
+                    default:
+                        Logger.Warn("意外的消息类型：" + type);
                         break;
                 }
             }
@@ -820,6 +773,28 @@ namespace DumbQQ.Client
             }
             return friends;
         }
+
+        /// <summary>
+        ///     消息回显事件参数。
+        /// </summary>
+        public class MessageEchoEventArgs : EventArgs
+        {
+            internal MessageEchoEventArgs(IMessageable target, string content)
+            {
+                Target = target;
+                Content = content;
+            }
+
+            /// <summary>
+            ///     消息目标。
+            /// </summary>
+            public IMessageable Target { get; }
+
+            /// <summary>
+            ///     消息内容。
+            /// </summary>
+            public string Content { get; }
+        }
     }
 
     public abstract class Cache
@@ -862,6 +837,7 @@ namespace DumbQQ.Client
         public void SetValue(object target)
         {
             Value = target;
+            IsValid = true;
             Timer.Change(Timeout, System.Threading.Timeout.InfiniteTimeSpan);
         }
     }
@@ -898,6 +874,7 @@ namespace DumbQQ.Client
         public void SetValue(T target)
         {
             Value = target;
+            IsValid = true;
             Timer.Change(Timeout, System.Threading.Timeout.InfiniteTimeSpan);
         }
     }

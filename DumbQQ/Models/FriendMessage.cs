@@ -10,11 +10,13 @@ namespace DumbQQ.Models
     /// </summary>
     public class FriendMessage : IMessage
     {
+        [JsonIgnore] internal DumbQQClient Client;
+
         /// <summary>
         ///     字体。
         /// </summary>
-        [JsonProperty("content_font")]
-        public Font Font { get; set; }
+        [JsonIgnore]
+        internal Font Font { get; set; }
 
         /// <summary>
         ///     用于parse消息和字体的对象。
@@ -24,7 +26,7 @@ namespace DumbQQ.Models
         {
             set
             {
-                Font = value.First.ToObject<Font>();
+                Font = ((JArray) value.First).Last.ToObject<Font>();
                 value.RemoveAt(0);
                 foreach (var shit in value)
                     Content += StringHelper.ParseEmoticons(shit);
@@ -34,27 +36,34 @@ namespace DumbQQ.Models
         /// <summary>
         ///     发送者ID。
         /// </summary>
-        [JsonProperty("send_uin")]
-        public long UserId { get; set; }
+        [JsonProperty("from_uin")]
+        internal long SenderId { get; set; }
+
+        /// <summary>
+        ///     发送者。
+        /// </summary>
+        [JsonIgnore]
+        public Friend Sender => Client.Friends.Find(_ => _.Id == SenderId);
 
         /// <summary>
         ///     消息时间戳。
         /// </summary>
         [JsonProperty("time")]
-        public long Timestamp { get; set; }
+        public long Timestamp { get; internal set; }
 
         /// <summary>
         ///     消息文字内容。
         /// </summary>
-        [JsonProperty("content_text")]
-        public string Content { get; set; }
+        [JsonIgnore]
+        public string Content { get; internal set; }
 
-        long IMessage.RepliableId
+        /// <summary>
+        ///     回复该消息。
+        /// </summary>
+        /// <param name="content">回复内容。</param>
+        public void Reply(string content)
         {
-            get { return UserId; }
-            set { UserId = value; }
+            Client.Message(DumbQQClient.TargetType.Friend, SenderId, content);
         }
-
-        DumbQQClient.TargetType IMessage.Type => DumbQQClient.TargetType.Friend;
     }
 }

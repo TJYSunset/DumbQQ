@@ -5,8 +5,20 @@ namespace DumbQQ.Models
     /// <summary>
     ///     讨论组成员。
     /// </summary>
-    public class DiscussionMember : IUser
+    public class DiscussionMember : User
     {
+        /// <summary>
+        ///     可用于发送消息的编号，不等于QQ号。
+        /// </summary>
+        [JsonProperty("uin")]
+        public override long Id { get; internal set; }
+
+        /// <summary>
+        ///     昵称。
+        /// </summary>
+        [JsonProperty("nick")]
+        public override string Nickname { get; internal set; }
+
         /// <summary>
         ///     客户端类型。
         /// </summary>
@@ -18,17 +30,5 @@ namespace DumbQQ.Models
         /// </summary>
         [JsonProperty("status")]
         public string Status { get; set; }
-
-        /// <summary>
-        ///     可用于发送消息的编号，不等于QQ号。
-        /// </summary>
-        [JsonProperty("uin")]
-        public long Id { get; set; }
-
-        /// <summary>
-        ///     昵称。
-        /// </summary>
-        [JsonProperty("nick")]
-        public string Nickname { get; set; }
     }
 }

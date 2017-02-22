@@ -74,11 +74,10 @@
     <Compile Include="Models\GroupMember.cs" />
     <Compile Include="Models\FriendMessage.cs" />
     <Compile Include="Models\ChatHistory.cs" />
-    <Compile Include="Models\IInfo.cs" />
     <Compile Include="Models\IListable.cs" />
     <Compile Include="Models\IMessage.cs" />
     <Compile Include="Models\IMessageable.cs" />
-    <Compile Include="Models\IUser.cs" />
+    <Compile Include="Models\User.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\DictionaryHelper.cs" />
     <Compile Include="Utils\RandomHelper.cs" />

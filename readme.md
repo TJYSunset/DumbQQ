@@ -34,3 +34,7 @@ DumbQQ不可以：
 本人并没有全面地测试该项目。如果使用中发现问题欢迎提Issue打脸。
 
 确定是SmartQQ接口自身的问题请提到[原项目](https://github.com/scienjus/smartqq)，谢谢合作。
+
+### 已知问题
+
+现在这个版本在遇到新好友/群成员, etc.时会导致NullPointerException，<ruby>将在未来版本修复<rp>（</rp><rt>~~我就是懒得修不服咬我~~</rt><rp>）</rp></ruby>

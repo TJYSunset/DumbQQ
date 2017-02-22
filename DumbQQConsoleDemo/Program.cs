@@ -1,96 +1,95 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using DumbQQ.Client;
 
 namespace DumbQQConsoleDemo
 {
     public class Program
     {
-        private static readonly DumbQQClient Client = new DumbQQClient();
-        private static string _qrCodePath;
+        private static readonly DumbQQClient Client = new DumbQQClient {CacheTimeout = TimeSpan.FromDays(1)};
+        private const string CookiePath = "dump.json";
 
         public static void Main(string[] args)
         {
-            Client.QrCodeDownloaded += (sender, s) =>
+            // 好友消息回调
+            Client.FriendMessageReceived += (sender, message) =>
             {
-                System.Diagnostics.Process.Start(s);
-                _qrCodePath = s;
+                var s = message.Sender;
+                Console.WriteLine($"{s.Alias ?? s.Nickname}:{message.Content}");
             };
-            Client.QrCodeExpired += (sender, s) => {
-                try
-                {
-                    File.Delete(s);
-                }
-                catch
-                {
-                    // ignore
-                }
-                Client.Start();
-            };
-            Client.LoginFailed += (sender, ex) =>
-            {
-                Console.WriteLine("按任意键以重新尝试登陆。");
-                Console.ReadKey(true);
-                Client.Start();
-            };
-            Client.LoginCompleted += (sender, s) =>
-            {
-                try
-                {
-                    File.Delete(_qrCodePath);
-                }
-                catch
-                {
-                    // ignore
-                }
-                Console.WriteLine("是否要导出cookie以便下次登录？[y/n]");
-                var response = Console.ReadLine();
-                if (response.IsMatch(@"^\s*(y|yes)\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) Client.Start();
-                {
-                    try
-                    {
-                        File.WriteAllText("cookies.json", Client.DumpCookies());
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("未成功导出cookie，抛出异常：" + ex);
-                    }
-                }
-                Console.WriteLine("欢迎，" + Client.GetInfoAboutMe().Nickname + "！");
-            };
+            // 群消息回调
             Client.GroupMessageReceived += (sender, message) =>
             {
-                Console.WriteLine("[私聊消息]" + message.Content);
-            };
-            Client.GroupMessageReceived += (sender, message) =>
-            {
-                Console.WriteLine("[群消息]" + message.Content);
-                if (message.Content.IsMatch(@"^Knock knock[\.!]?$",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-                    Client.ReplyTo(message, "Who's there?");
-            };
-            Client.GroupMessageReceived += (sender, message) =>
-            {
-                Console.WriteLine("[讨论组消息]" + message.Content);
-            };
-            if (File.Exists("cookies.json"))
-            {
-                Console.WriteLine("检测到有导出的cookie，是否要通过cookie登录？[y/n]");
-                var response = Console.ReadLine();
-                if (!response.IsMatch(@"^\s*(y|yes)\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) Client.Start();
-                try
+                var s = message.Sender;
+                Console.WriteLine($"[{message.Group.Name}]{s.Alias ?? s.Nickname}:{message.Content}");
+                if (message.Content.IsMatch(@"^\s*Knock knock\s*$"))
                 {
-                    var save = File.ReadAllText("cookies.json");
-                    Client.Start(save);
+                    message.Reply("Who's there?");
                 }
-                catch
+            };
+            // 讨论组消息回调
+            Client.DiscussionMessageReceived += (sender, message) =>
+            {
+                Console.WriteLine($"[{message.Discussion.Name}]{message.Sender.Nickname}:{message.Content}");
+            };
+            // 消息回显
+            Client.MessageEcho += (sender, e) =>
+            {
+                Console.WriteLine($"{e.Target.Name}>{e.Content}");
+            };
+            if (File.Exists(CookiePath))
+            {
+                // 尝试使用cookie登录
+                if (Client.Start(File.ReadAllText(CookiePath)) != DumbQQClient.LoginResult.Succeeded)
                 {
-                    Client.Start();
+                    // 登录失败，退回二维码登录
+                    QrLogin();
                 }
             }
             else
             {
-                Client.Start();
+                QrLogin();
+            }
+            Console.WriteLine($"欢迎，{Client.Nickname}!");
+            // 导出cookie
+            try
+            {
+                File.WriteAllText(CookiePath, Client.DumpCookies());
+            }
+            catch
+            {
+                // Ignored
+            }
+            // 防止程序终止
+            while (Client.Status == DumbQQClient.ClientStatus.Active)
+            {
+            }
+        }
+
+        private static void QrLogin()
+        {
+            while (true)
+            {
+                // ReSharper disable once SwitchStatementMissingSomeCases1
+                switch (Client.Start(path => Process.Start(path)))
+                {
+                    case DumbQQClient.LoginResult.Succeeded:
+                        return;
+                    case DumbQQClient.LoginResult.QrCodeExpired:
+                        continue;
+                    default:
+                        Console.WriteLine("登录失败，需要重试吗？(y/n)");
+                        var response = Console.ReadLine();
+                        if (response.IsMatch(@"^\s*y(es)?\s*$", RegexOptions.IgnoreCase))
+                        {
+                            continue;
+                        }
+                        Environment.Exit(1);
+                        return;
+                }
             }
         }
     }

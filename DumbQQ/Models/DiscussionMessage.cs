@@ -10,11 +10,16 @@ namespace DumbQQ.Models
     /// </summary>
     public class DiscussionMessage : IMessage
     {
+        [JsonIgnore] internal DumbQQClient Client;
+
         /// <summary>
         ///     讨论组ID。
         /// </summary>
         [JsonProperty("did")]
-        public long DiscussionId { get; set; }
+        internal long DiscussionId { get; set; }
+
+        [JsonIgnore]
+        public Discussion Discussion => Client.Discussions.Find(_ => _.Id == DiscussionId);
 
         /// <summary>
         ///     字体。
@@ -30,7 +35,7 @@ namespace DumbQQ.Models
         {
             set
             {
-                Font = value.First.ToObject<Font>();
+                Font = ((JArray) value.First).Last.ToObject<Font>();
                 value.RemoveAt(0);
                 foreach (var shit in value)
                     Content += StringHelper.ParseEmoticons(shit);
@@ -41,7 +46,10 @@ namespace DumbQQ.Models
         ///     发送者ID。
         /// </summary>
         [JsonProperty("send_uin")]
-        public long UserId { get; set; }
+        internal long SenderId { get; set; }
+
+        [JsonIgnore]
+        public DiscussionMember Sender => Discussion.Members.Find(_ => _.Id == SenderId);
 
         /// <summary>
         ///     消息时间戳。
@@ -55,12 +63,13 @@ namespace DumbQQ.Models
         [JsonProperty("content_text")]
         public string Content { get; set; }
 
-        long IMessage.RepliableId
+        /// <summary>
+        ///     回复该消息。
+        /// </summary>
+        /// <param name="content">回复内容。</param>
+        public void Reply(string content)
         {
-            get { return DiscussionId; }
-            set { DiscussionId = value; }
+            Client.Message(DumbQQClient.TargetType.Discussion, DiscussionId, content);
         }
-
-        DumbQQClient.TargetType IMessage.Type => DumbQQClient.TargetType.Discussion;
     }
 }

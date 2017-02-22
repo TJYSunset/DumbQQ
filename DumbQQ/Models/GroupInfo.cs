@@ -6,7 +6,7 @@ namespace DumbQQ.Models
     /// <summary>
     ///     群详细信息。
     /// </summary>
-    public class GroupInfo : IInfo
+    internal class GroupInfo
     {
         /// <summary>
         ///     用于发送信息的编号。不等于群号。

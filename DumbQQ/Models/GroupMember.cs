@@ -5,8 +5,20 @@ namespace DumbQQ.Models
     /// <summary>
     ///     群成员。
     /// </summary>
-    public class GroupMember : IUser
+    public class GroupMember : User
     {
+        /// <summary>
+        ///     可用于发送消息的编号，不等于QQ号。
+        /// </summary>
+        [JsonProperty("uin")]
+        public override long Id { get; internal set; }
+
+        /// <summary>
+        ///     昵称。
+        /// </summary>
+        [JsonProperty("nick")]
+        public override string Nickname { get; internal set; }
+
         /// <summary>
         ///     群名片。
         /// </summary>
@@ -60,17 +72,5 @@ namespace DumbQQ.Models
         /// </summary>
         [JsonProperty("vipLevel")]
         public int VipLevel { get; set; }
-
-        /// <summary>
-        ///     ID。
-        /// </summary>
-        [JsonProperty("uin")]
-        public long Id { get; set; }
-
-        /// <summary>
-        ///     昵称。
-        /// </summary>
-        [JsonProperty("nick")]
-        public string Nickname { get; set; }
     }
 }

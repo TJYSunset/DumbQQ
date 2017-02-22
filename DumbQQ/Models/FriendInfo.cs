@@ -5,7 +5,7 @@ namespace DumbQQ.Models
     /// <summary>
     ///     好友详细信息。
     /// </summary>
-    public class FriendInfo : IInfo
+    internal class FriendInfo
     {
         /// <summary>
         ///     可用于发送消息的编号。

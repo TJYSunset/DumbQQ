@@ -10,17 +10,25 @@ namespace DumbQQ.Models
     /// </summary>
     public class GroupMessage : IMessage
     {
+        [JsonIgnore] internal DumbQQClient Client;
+
         /// <summary>
         ///     群ID。
         /// </summary>
         [JsonProperty("group_code")]
-        public long GroupId { get; set; }
+        internal long GroupId { get; set; }
+
+        /// <summary>
+        ///     消息来源群。
+        /// </summary>
+        [JsonIgnore]
+        public Group Group => Client.Groups.Find(_ => _.Id == GroupId);
 
         /// <summary>
         ///     字体。
         /// </summary>
-        [JsonProperty("content_font")]
-        public Font Font { get; set; }
+        [JsonIgnore]
+        internal Font Font { get; set; }
 
         /// <summary>
         ///     用于parse消息和字体的对象。
@@ -41,26 +49,33 @@ namespace DumbQQ.Models
         ///     发送者ID。
         /// </summary>
         [JsonProperty("send_uin")]
-        public long UserId { get; set; }
+        internal long SenderId { get; set; }
+
+        /// <summary>
+        ///     发送者。
+        /// </summary>
+        [JsonIgnore]
+        public GroupMember Sender => Group.Members.Find(_ => _.Id == SenderId);
 
         /// <summary>
         ///     消息时间戳。
         /// </summary>
         [JsonProperty("time")]
-        public long Timestamp { get; set; }
+        public long Timestamp { get; internal set; }
 
         /// <summary>
         ///     消息文字内容。
         /// </summary>
-        [JsonProperty("content_text")]
-        public string Content { get; set; }
+        [JsonIgnore]
+        public string Content { get; internal set; }
 
-        long IMessage.RepliableId
+        /// <summary>
+        ///     回复该消息。
+        /// </summary>
+        /// <param name="content">回复内容。</param>
+        public void Reply(string content)
         {
-            get { return GroupId; }
-            set { GroupId = value; }
+            Client.Message(DumbQQClient.TargetType.Group, GroupId, content);
         }
-
-        DumbQQClient.TargetType IMessage.Type => DumbQQClient.TargetType.Group;
     }
 }
