@@ -205,7 +205,9 @@ namespace DumbQQ.Models
                 var item = (JObject) friends[i];
                 friendDictionary[item["uin"].Value<long>()].CategoryIndex = item["categories"].Value<int>();
             }
-            return friendDictionary.Select(_ => _.Value).ToList();
+            var value = friendDictionary.Select(_ => _.Value).ToList();
+            value.ForEach(_ => _.Client = client);
+            return value;
         }
 
         public static bool operator ==(Friend left, Friend right) => left?.Id == right?.Id;
