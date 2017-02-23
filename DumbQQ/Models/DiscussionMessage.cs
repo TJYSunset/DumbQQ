@@ -51,6 +51,9 @@ namespace DumbQQ.Models
         [JsonIgnore]
         public DiscussionMember Sender => Discussion.Members.Find(_ => _.Id == SenderId);
 
+        [JsonIgnore]
+        User IMessage.Sender => Sender;
+
         /// <summary>
         ///     消息时间戳。
         /// </summary>

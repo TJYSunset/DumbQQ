@@ -45,6 +45,9 @@ namespace DumbQQ.Models
         [JsonIgnore]
         public Friend Sender => Client.Friends.Find(_ => _.Id == SenderId);
 
+        [JsonIgnore]
+        User IMessage.Sender => Sender;
+
         /// <summary>
         ///     消息时间戳。
         /// </summary>

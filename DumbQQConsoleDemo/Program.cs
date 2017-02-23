@@ -73,7 +73,7 @@ namespace DumbQQConsoleDemo
         {
             while (true)
             {
-                // ReSharper disable once SwitchStatementMissingSomeCases1
+                // ReSharper disable once SwitchStatementMissingSomeCases
                 switch (Client.Start(path => Process.Start(path)))
                 {
                     case DumbQQClient.LoginResult.Succeeded:
