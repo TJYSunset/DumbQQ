@@ -15,6 +15,11 @@ namespace DumbQQ.Models
         /// </summary>
         public abstract string Nickname { get; internal set; }
 
+        /// <summary>
+        ///     QQºÅ¡£
+        /// </summary>
+        public abstract long QQNumber { get; }
+
         public static bool operator ==(User left, User right) => left?.Id == right?.Id;
         public static bool operator !=(User left, User right) => !(left == right);
 

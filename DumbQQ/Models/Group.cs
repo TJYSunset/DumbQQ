@@ -70,6 +70,7 @@ namespace DumbQQ.Models
                     member.IsVip = item["is_vip"].Value<int>() == 1;
                     member.VipLevel = item["vip_level"].Value<int>();
                 }
+                _info.Members.ForEach(_ => _.Client = Client);
                 return _info;
             }
         }

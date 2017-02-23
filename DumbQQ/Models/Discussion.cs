@@ -44,6 +44,7 @@ namespace DumbQQ.Models
                     member.ClientType = item["client_type"].Value<int>();
                     member.Status = item["status"].Value<string>();
                 }
+                _info.Members.ForEach(_ => _.Client = Client);
                 return _info;
             }
         }

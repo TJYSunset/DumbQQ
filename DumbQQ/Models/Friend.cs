@@ -155,6 +155,12 @@ namespace DumbQQ.Models
         public int VipInfo => Info.VipInfo;
 
         /// <summary>
+        ///     QQ号。
+        /// </summary>
+        [JsonIgnore]
+        public override long QQNumber => Client.GetQQNumberOf(Id);
+
+        /// <summary>
         ///     可用于发送消息的编号，不等于QQ号。
         /// </summary>
         [JsonProperty("userId")]

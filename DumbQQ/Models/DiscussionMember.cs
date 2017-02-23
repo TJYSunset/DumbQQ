@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using DumbQQ.Client;
+using Newtonsoft.Json;
 
 namespace DumbQQ.Models
 {
@@ -7,6 +8,14 @@ namespace DumbQQ.Models
     /// </summary>
     public class DiscussionMember : User
     {
+        [JsonIgnore] internal DumbQQClient Client;
+
+        /// <summary>
+        ///     QQ号。
+        /// </summary>
+        [JsonIgnore]
+        public override long QQNumber => Client.GetQQNumberOf(Id);
+
         /// <summary>
         ///     可用于发送消息的编号，不等于QQ号。
         /// </summary>
