@@ -41,11 +41,29 @@ namespace DumbQQ.Client
             Active
         }
 
+        /// <summary>
+        ///     登录结果。
+        /// </summary>
         public enum LoginResult
         {
+            /// <summary>
+            ///     登录成功。
+            /// </summary>
             Succeeded,
+
+            /// <summary>
+            ///     二维码失效。登录失败。
+            /// </summary>
             QrCodeExpired,
+
+            /// <summary>
+            ///     cookie失效。登录失败。
+            /// </summary>
             CookieExpired,
+
+            /// <summary>
+            ///     发生了二维码失效和cookie失效以外的错误。
+            /// </summary>
             Failed
         }
 
@@ -243,6 +261,11 @@ namespace DumbQQ.Client
         /// </summary>
         [Obsolete]
         public event EventHandler<string> ExtraLoginNeeded;
+
+        /// <summary>
+        ///     当掉线时被引发。
+        /// </summary>
+        public event EventHandler ConnectionLost;
 
         /// <summary>
         ///     接收到好友消息时被引发。
@@ -654,15 +677,15 @@ namespace DumbQQ.Client
                     {
                         PollMessage();
                     }
-                    catch (HttpRequestException e)
-                    {
-                        if (!(e.InnerException is HttpException) ||
-                            ((HttpException) e.InnerException).StatusCode != HttpStatusCode.GatewayTimeout)
-                            Logger.Error(e);
-                    }
                     catch (Exception ex)
                     {
-                        Logger.Error(ex);
+                        if (!(ex is HttpRequestException) || !(ex.InnerException is HttpException) ||
+                            ((HttpException) ex.InnerException).StatusCode != HttpStatusCode.GatewayTimeout)
+                            Logger.Error(ex);
+                        // 自动掉线
+                        if (TestLogin()) continue;
+                        Close();
+                        ConnectionLost?.Invoke(this, EventArgs.Empty);
                     }
                 }
             }) {IsBackground = true}.Start();
@@ -719,6 +742,10 @@ namespace DumbQQ.Client
             if (Status == ClientStatus.Idle)
                 throw new InvalidOperationException("尚未登录，无法进行该操作");
             _pollStarted = false;
+            // 清除缓存
+            _cache.Clear();
+            _myInfoCache.Clear();
+            _qqNumberCache.Clear();
         }
 
         internal JObject GetResponseJson(HttpResponse response)
@@ -810,11 +837,7 @@ namespace DumbQQ.Client
         protected Cache(TimeSpan timeout)
         {
             Timeout = timeout;
-            Timer = new Timer(_ =>
-            {
-                IsValid = false;
-                Value = null;
-            }, null, Timeout, System.Threading.Timeout.InfiniteTimeSpan);
+            Timer = new Timer(_ => Clear(), null, Timeout, System.Threading.Timeout.InfiniteTimeSpan);
         }
 
         protected object Value { get; set; }
@@ -839,6 +862,12 @@ namespace DumbQQ.Client
             Value = target;
             IsValid = true;
             Timer.Change(Timeout, System.Threading.Timeout.InfiniteTimeSpan);
+        }
+
+        public void Clear()
+        {
+            IsValid = false;
+            Value = null;
         }
     }
 
@@ -897,6 +926,11 @@ namespace DumbQQ.Client
             if (!_dic.ContainsKey(typeof(T).FullName))
                 _dic.Add(typeof(T).FullName, new Cache<T>(_timeout));
             return _dic[typeof(T).FullName];
+        }
+
+        public void Clear()
+        {
+            _dic.Clear();
         }
     }
 
