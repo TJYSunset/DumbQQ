@@ -11,6 +11,9 @@ namespace DumbQQ.Models
     /// </summary>
     public class ChatHistory : IListable
     {
+        /// <summary>
+        ///     会话记录类型。
+        /// </summary>
         public enum HistoryType
         {
             /// <summary>
@@ -36,10 +39,10 @@ namespace DumbQQ.Models
         public HistoryType Type { get; set; }
 
         /// <summary>
-        ///     发送者ID。
+        ///     来源ID。
         /// </summary>
         [JsonProperty("uin")]
-        public long UserId { get; set; }
+        public long Id { get; set; }
 
         internal static List<ChatHistory> GetList(DumbQQClient client)
         {

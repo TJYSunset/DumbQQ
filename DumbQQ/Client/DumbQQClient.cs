@@ -18,6 +18,9 @@ using HttpClient = EasyHttp.Http.HttpClient;
 
 namespace DumbQQ.Client
 {
+    /// <summary>
+    ///     用于连接到SmartQQ的客户端。
+    /// </summary>
     public class DumbQQClient
     {
         /// <summary>
@@ -128,14 +131,29 @@ namespace DumbQQ.Client
             _qqNumberCache = new CacheDictionary<long, long>(CacheTimeout);
         }
 
+        /// <summary>
+        ///     已登录账户的最近会话。
+        /// </summary>
         public List<ChatHistory> RecentConversations => GetListOf<ChatHistory>();
 
+        /// <summary>
+        ///     已登录账户加入的讨论组。
+        /// </summary>
         public List<Discussion> Discussions => GetListOf<Discussion>();
 
+        /// <summary>
+        ///     已登录账户的好友。
+        /// </summary>
         public List<Friend> Friends => GetListOf<Friend>();
 
+        /// <summary>
+        ///     已登录账户的好友分组。
+        /// </summary>
         public List<FriendCategory> Categories => GetListOf<FriendCategory>();
 
+        /// <summary>
+        ///     已登录账户加入的群。
+        /// </summary>
         public List<Group> Groups => GetListOf<Group>();
 
         /// <summary>
@@ -516,6 +534,7 @@ namespace DumbQQ.Client
         /// <summary>
         ///     连接到SmartQQ。
         /// </summary>
+        /// <param name="qrCodeDownloadedCallback">二维码已下载时的回调函数。</param>
         public LoginResult Start(Action<string> qrCodeDownloadedCallback)
         {
             if (Status != ClientStatus.Idle)
@@ -824,7 +843,7 @@ namespace DumbQQ.Client
         }
     }
 
-    public abstract class Cache
+    internal abstract class Cache
     {
         protected readonly TimeSpan Timeout;
         protected readonly Timer Timer;
@@ -964,7 +983,12 @@ namespace DumbQQ.Client
             ErrorCode = errorCode;
         }
 
+        /// <summary>
+        ///     返回的错误码。
+        /// </summary>
         public int ErrorCode { get; }
+
+        /// <inheritdoc />
         public override string Message => "API错误，返回码" + ErrorCode;
     }
 }

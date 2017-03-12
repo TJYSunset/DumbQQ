@@ -20,14 +20,19 @@ namespace DumbQQ.Models
         /// </summary>
         public abstract long QQNumber { get; }
 
+        /// <inheritdoc />
         public static bool operator ==(User left, User right) => left?.Id == right?.Id;
+
+        /// <inheritdoc />
         public static bool operator !=(User left, User right) => !(left == right);
 
+        /// <inheritdoc />
         protected bool Equals(User other)
         {
             return Id == other.Id;
         }
 
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
@@ -36,6 +41,7 @@ namespace DumbQQ.Models
             return other != null && Equals(other);
         }
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             return Id.GetHashCode();

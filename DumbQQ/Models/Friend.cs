@@ -177,11 +177,13 @@ namespace DumbQQ.Models
 
         string IMessageable.Name => Nickname;
 
+        /// <inheritdoc />
         protected bool Equals(Friend other)
         {
             return base.Equals(other) && Id == other.Id;
         }
 
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
@@ -189,6 +191,7 @@ namespace DumbQQ.Models
             return obj.GetType() == GetType() && Equals((Friend) obj);
         }
 
+        /// <inheritdoc />
         public override int GetHashCode() => Id.GetHashCode();
 
         internal static List<Friend> GetList(DumbQQClient client)
@@ -210,8 +213,10 @@ namespace DumbQQ.Models
             return value;
         }
 
+        /// <inheritdoc />
         public static bool operator ==(Friend left, Friend right) => left?.Id == right?.Id;
 
+        /// <inheritdoc />
         public static bool operator !=(Friend left, Friend right) => !(left == right);
     }
 }

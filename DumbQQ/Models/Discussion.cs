@@ -76,11 +76,13 @@ namespace DumbQQ.Models
             Client.Message(DumbQQClient.TargetType.Discussion, Id, content);
         }
 
+        /// <inheritdoc />
         protected bool Equals(Discussion other)
         {
             return Id == other.Id;
         }
 
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
@@ -88,6 +90,7 @@ namespace DumbQQ.Models
             return obj.GetType() == GetType() && Equals((Discussion) obj);
         }
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             return Id.GetHashCode();
@@ -105,7 +108,10 @@ namespace DumbQQ.Models
             return result;
         }
 
+        /// <inheritdoc />
         public static bool operator ==(Discussion left, Discussion right) => left?.Id == right?.Id;
+
+        /// <inheritdoc />
         public static bool operator !=(Discussion left, Discussion right) => !(left == right);
     }
 }

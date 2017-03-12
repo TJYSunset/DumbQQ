@@ -2,7 +2,7 @@
 
 namespace DumbQQ.Utils
 {
-    public static class DictionaryHelper
+    internal static class DictionaryHelper
     {
         /// <summary>
         ///     在键已存在时覆盖内容，反之添加新键值对。

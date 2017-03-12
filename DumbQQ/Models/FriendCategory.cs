@@ -69,5 +69,28 @@ namespace DumbQQ.Models
                 category.Client = client;
             return categoryDictionary.Select(_ => _.Value).ToList();
         }
+
+        /// <inheritdoc />
+        protected bool Equals(FriendCategory other)
+        {
+            return base.Equals(other) && Index == other.Index;
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((Friend) obj);
+        }
+
+        /// <inheritdoc />
+        public override int GetHashCode() => Index.GetHashCode();
+
+        /// <inheritdoc />
+        public static bool operator ==(FriendCategory left, FriendCategory right) => left?.Index == right?.Index;
+
+        /// <inheritdoc />
+        public static bool operator !=(FriendCategory left, FriendCategory right) => !(left == right);
     }
 }

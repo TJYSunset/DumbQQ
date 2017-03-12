@@ -18,6 +18,9 @@ namespace DumbQQ.Models
         [JsonProperty("did")]
         internal long DiscussionId { get; set; }
 
+        /// <summary>
+        ///     来源讨论组。
+        /// </summary>
         [JsonIgnore]
         public Discussion Discussion => Client.Discussions.Find(_ => _.Id == DiscussionId);
 

@@ -16,5 +16,6 @@
     <tags>QQ SmartQQ WebQQ chatbot bot api 机器人 聊天机器人</tags>
   </metadata>
   <files>
+    <file src="bin\*\DumbQQ.xml" target="lib\net462">
   </files>
 </package>
