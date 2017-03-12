@@ -10,21 +10,15 @@ namespace DumbQQ.Models
     {
         [JsonIgnore] internal DumbQQClient Client;
 
-        /// <summary>
-        ///     QQ号。
-        /// </summary>
+        /// <inheritdoc />
         [JsonIgnore]
         public override long QQNumber => Client.GetQQNumberOf(Id);
 
-        /// <summary>
-        ///     可用于发送消息的编号，不等于QQ号。
-        /// </summary>
+        /// <inheritdoc />
         [JsonProperty("uin")]
         public override long Id { get; internal set; }
 
-        /// <summary>
-        ///     昵称。
-        /// </summary>
+        /// <inheritdoc />
         [JsonProperty("nick")]
         public override string Nickname { get; internal set; }
 

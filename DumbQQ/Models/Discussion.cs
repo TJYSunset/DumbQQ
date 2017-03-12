@@ -55,21 +55,15 @@ namespace DumbQQ.Models
         [JsonIgnore]
         public List<DiscussionMember> Members => Info.Members;
 
-        /// <summary>
-        ///     名称。
-        /// </summary>
+        /// <inheritdoc />
         [JsonProperty("name")]
         public string Name { get; internal set; }
 
-        /// <summary>
-        ///     可用于发送消息的编号。
-        /// </summary>
+        /// <inheritdoc />
         [JsonProperty("did")]
         public long Id { get; internal set; }
 
-        /// <summary>
-        ///     发送消息。
-        /// </summary>
+        /// <inheritdoc />
         /// <param name="content">消息内容。</param>
         public void Message(string content)
         {

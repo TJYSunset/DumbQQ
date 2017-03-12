@@ -51,27 +51,22 @@ namespace DumbQQ.Models
         [JsonProperty("send_uin")]
         internal long SenderId { get; set; }
 
+        /// <inheritdoc />
         [JsonIgnore]
         public DiscussionMember Sender => Discussion.Members.Find(_ => _.Id == SenderId);
 
         [JsonIgnore]
         User IMessage.Sender => Sender;
 
-        /// <summary>
-        ///     消息时间戳。
-        /// </summary>
+        /// <inheritdoc />
         [JsonProperty("time")]
         public long Timestamp { get; set; }
 
-        /// <summary>
-        ///     消息文字内容。
-        /// </summary>
+        /// <inheritdoc />
         [JsonProperty("content_text")]
         public string Content { get; set; }
 
-        /// <summary>
-        ///     回复该消息。
-        /// </summary>
+        /// <inheritdoc />
         /// <param name="content">回复内容。</param>
         public void Reply(string content)
         {

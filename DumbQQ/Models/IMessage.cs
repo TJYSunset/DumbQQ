@@ -6,17 +6,17 @@
     public interface IMessage
     {
         /// <summary>
-        ///     时间戳。
+        ///     消息时间戳。
         /// </summary>
         long Timestamp { get; }
 
         /// <summary>
-        ///     消息内容。
+        ///     消息文字内容。
         /// </summary>
         string Content { get; }
 
         /// <summary>
-        ///     发送者。
+        ///     消息发送者。
         /// </summary>
         User Sender { get; }
 

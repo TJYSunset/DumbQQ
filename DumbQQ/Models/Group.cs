@@ -25,7 +25,7 @@ namespace DumbQQ.Models
         ///     用于查询详细信息信息的编号。
         /// </summary>
         [JsonProperty("code")]
-        public long Code { get; internal set; }
+        internal long Code { get; set; }
 
         [JsonIgnore]
         private GroupInfo Info
@@ -105,21 +105,15 @@ namespace DumbQQ.Models
         [JsonIgnore]
         public List<GroupMember> Members => Info.Members;
 
-        /// <summary>
-        ///     名称。
-        /// </summary>
+        /// <inheritdoc />
         [JsonProperty("name")]
         public string Name { get; internal set; }
 
-        /// <summary>
-        ///     用于发送信息的编号。不等于群号。
-        /// </summary>
+        /// <inheritdoc />
         [JsonProperty("gid")]
         public long Id { get; internal set; }
 
-        /// <summary>
-        ///     发送消息。
-        /// </summary>
+        /// <inheritdoc />
         /// <param name="content">消息内容。</param>
         public void Message(string content)
         {

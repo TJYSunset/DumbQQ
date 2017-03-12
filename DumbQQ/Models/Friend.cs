@@ -16,9 +16,7 @@ namespace DumbQQ.Models
 
         [JsonIgnore] internal DumbQQClient Client;
 
-        /// <summary>
-        ///     昵称。
-        /// </summary>
+        /// <inheritdoc />
         [JsonProperty("nickname")]
         public override string Nickname { get; internal set; }
 
@@ -154,21 +152,15 @@ namespace DumbQQ.Models
         [JsonIgnore]
         public int VipInfo => Info.VipInfo;
 
-        /// <summary>
-        ///     QQ号。
-        /// </summary>
+        /// <inheritdoc />
         [JsonIgnore]
         public override long QQNumber => Client.GetQQNumberOf(Id);
 
-        /// <summary>
-        ///     可用于发送消息的编号，不等于QQ号。
-        /// </summary>
+        /// <inheritdoc />
         [JsonProperty("userId")]
         public override long Id { get; internal set; }
 
-        /// <summary>
-        ///     发送消息。
-        /// </summary>
+        /// <inheritdoc />
         /// <param name="content">消息内容。</param>
         public void Message(string content)
         {
