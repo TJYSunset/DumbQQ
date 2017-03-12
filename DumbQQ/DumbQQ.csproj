@@ -84,6 +84,7 @@
     <Compile Include="Utils\DictionaryHelper.cs" />
     <Compile Include="Utils\RandomHelper.cs" />
     <Compile Include="Utils\ReflectionHelper.cs" />
+    <Compile Include="Utils\StreamHelper.cs" />
     <Compile Include="Utils\StringHelper.cs" />
   </ItemGroup>
   <ItemGroup>

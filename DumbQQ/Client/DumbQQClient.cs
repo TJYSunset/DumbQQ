@@ -534,8 +534,8 @@ namespace DumbQQ.Client
         /// <summary>
         ///     连接到SmartQQ。
         /// </summary>
-        /// <param name="qrCodeDownloadedCallback">二维码已下载时的回调函数。</param>
-        public LoginResult Start(Action<string> qrCodeDownloadedCallback)
+        /// <param name="qrCodeDownloadedCallback">二维码已下载时的回调函数。回调函数的参数为二维码图像的字节数组。</param>
+        public LoginResult Start(Action<byte[]> qrCodeDownloadedCallback)
         {
             if (Status != ClientStatus.Idle)
                 throw new InvalidOperationException("已在登录或者已经登录，不能重复进行登录操作");
@@ -550,8 +550,20 @@ namespace DumbQQ.Client
             return result;
         }
 
+        /// <summary>
+        ///     连接到SmartQQ。
+        /// </summary>
+        /// <param name="qrCodeDownloadedCallback">二维码已下载时的回调函数。回调函数的参数为已下载的二维码的绝对路径。</param>
+        [Obsolete("此方法已不赞成使用，并可能在未来版本中移除。请考虑改为使用Start(Action<byte[]>)。")]
+        public LoginResult Start(Action<string> qrCodeDownloadedCallback) => Start(_ =>
+        {
+            var filePath = Path.GetFullPath("qrcode" + RandomHelper.GetRandomInt() + ".png");
+            File.WriteAllBytes(filePath, _);
+            qrCodeDownloadedCallback(filePath);
+        });
+
         // 登录
-        private LoginResult Login(Action<string> qrCodeDownloadedCallback)
+        private LoginResult Login(Action<byte[]> qrCodeDownloadedCallback)
         {
             try
             {
@@ -580,20 +592,22 @@ namespace DumbQQ.Client
         }
 
         // 获取二维码
-        private void GetQrCode(Action<string> qrCodeDownloadedCallback)
+        private void GetQrCode(Action<byte[]> qrCodeDownloadedCallback)
         {
             Logger.Debug("开始获取二维码");
-            var filePath = Path.GetFullPath("qrcode" + RandomHelper.GetRandomInt() + ".png");
 
-            var response = Client.GetAsFile(ApiUrl.GetQrCode.Url, filePath);
+            Client.StreamResponse = true;
+            var response = Client.Get(ApiUrl.GetQrCode.Url);
             foreach (Cookie cookie in response.Cookies)
             {
                 if (cookie.Name != "qrsig") continue;
                 _qrsig = cookie.Value;
                 break;
             }
-            Logger.Info("二维码已保存在 " + filePath + " 文件中，请打开手机QQ并扫描二维码");
-            qrCodeDownloadedCallback.Invoke(filePath);
+            Client.StreamResponse = false;
+            Logger.Info("二维码已获取");
+
+            qrCodeDownloadedCallback.Invoke(response.ResponseStream.ToBytes());
         }
 
         private static int Hash33(string s)
