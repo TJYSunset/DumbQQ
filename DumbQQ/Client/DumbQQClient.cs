@@ -102,6 +102,8 @@ namespace DumbQQ.Client
 
         internal readonly HttpClient Client = new HttpClient();
 
+        private TimeSpan _cacheTimeout = TimeSpan.FromHours(2);
+
         // 线程开关
         private volatile bool _pollStarted;
 
@@ -159,7 +161,17 @@ namespace DumbQQ.Client
         /// <summary>
         ///     缓存的超时时间。
         /// </summary>
-        public TimeSpan CacheTimeout { get; set; } = TimeSpan.FromHours(2);
+        public TimeSpan CacheTimeout
+        {
+            get { return _cacheTimeout; }
+            set
+            {
+                _cacheTimeout = value;
+                _cache.Timeout = value;
+                _myInfoCache.Timeout = value;
+                _qqNumberCache.Timeout = value;
+            }
+        }
 
         /// <summary>
         ///     发送消息的重试次数。
@@ -859,7 +871,6 @@ namespace DumbQQ.Client
 
     internal abstract class Cache
     {
-        protected readonly TimeSpan Timeout;
         protected readonly Timer Timer;
         protected bool IsValid;
 
@@ -872,6 +883,8 @@ namespace DumbQQ.Client
             Timeout = timeout;
             Timer = new Timer(_ => Clear(), null, Timeout, System.Threading.Timeout.InfiniteTimeSpan);
         }
+
+        public TimeSpan Timeout { get; set; }
 
         protected object Value { get; set; }
 
@@ -947,17 +960,18 @@ namespace DumbQQ.Client
     internal class CacheDepot
     {
         private readonly Dictionary<string, Cache> _dic = new Dictionary<string, Cache>();
-        private readonly TimeSpan _timeout;
 
         public CacheDepot(TimeSpan timeout)
         {
-            _timeout = timeout;
+            Timeout = timeout;
         }
+
+        public TimeSpan Timeout { get; set; }
 
         public Cache GetCache<T>() where T : class
         {
             if (!_dic.ContainsKey(typeof(T).FullName))
-                _dic.Add(typeof(T).FullName, new Cache<T>(_timeout));
+                _dic.Add(typeof(T).FullName, new Cache<T>(Timeout));
             return _dic[typeof(T).FullName];
         }
 
@@ -977,9 +991,22 @@ namespace DumbQQ.Client
         // ReSharper disable once NotAccessedField.Local
         private readonly Timer _timer;
 
+        private TimeSpan _timeout;
+
         public CacheDictionary(TimeSpan timeout)
         {
+            _timeout = timeout;
             _timer = new Timer(_ => Clear(), null, timeout, timeout);
+        }
+
+        public TimeSpan Timeout
+        {
+            get { return _timeout; }
+            set
+            {
+                _timeout = value;
+                _timer.Change(value, value);
+            }
         }
     }
 
