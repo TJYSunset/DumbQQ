@@ -207,6 +207,11 @@ namespace DumbQQ.Client
         public long Id => MyInfo.Id;
 
         /// <summary>
+        ///     已登录账户的QQ号。
+        /// </summary>
+        public long QQNumber => GetQQNumberOf(Id);
+
+        /// <summary>
         ///     已登录账户的昵称。
         /// </summary>
         public string Nickname => MyInfo.Nickname;
