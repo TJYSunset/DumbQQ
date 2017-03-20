@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DumbQQ.Client;
 using DumbQQ.Constants;
@@ -21,12 +22,6 @@ namespace DumbQQ.Models
         public int Index { get; set; }
 
         /// <summary>
-        ///     意义暂不明确。
-        /// </summary>
-        [JsonProperty("sort")]
-        public int Sort { get; set; }
-
-        /// <summary>
         ///     名称。
         /// </summary>
         [JsonProperty("name")]
@@ -46,7 +41,6 @@ namespace DumbQQ.Models
             return new FriendCategory
             {
                 Index = 0,
-                Sort = 0,
                 Name = "我的好友"
             };
         }

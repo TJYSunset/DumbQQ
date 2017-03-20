@@ -61,6 +61,10 @@ namespace DumbQQ.Models
                 {
                     var item = (JObject) cards[i];
                     members[item["muin"].Value<long>()].Alias = item["card"].Value<string>();
+                    if (item["muin"].Value<long>() == Client.Id)
+                    {
+                        _info.MyAlias = item["card"].Value<string>();
+                    }
                 }
                 var vipinfo = (JArray) result["vipinfo"];
                 for (var i = 0; vipinfo != null && i < vipinfo.Count; i++)
@@ -112,6 +116,12 @@ namespace DumbQQ.Models
         /// <inheritdoc />
         [JsonProperty("gid")]
         public long Id { get; internal set; }
+
+        /// <summary>
+        ///     已登录账户在此群的群名片。
+        /// </summary>
+        [JsonIgnore]
+        public string MyAlias => Info.MyAlias;
 
         /// <inheritdoc />
         /// <param name="content">消息内容。</param>

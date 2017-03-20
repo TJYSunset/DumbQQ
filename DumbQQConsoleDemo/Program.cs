@@ -23,7 +23,7 @@ namespace DumbQQConsoleDemo
             Client.GroupMessageReceived += (sender, message) =>
             {
                 var s = message.Sender;
-                Console.WriteLine($"[{message.Group.Name}]{s.Alias ?? s.Nickname}:{message.Content}");
+                Console.WriteLine($"[{message.Group.Name}|{message.Group.Alias}]{s.Alias ?? s.Nickname}:{message.Content}");
                 if (message.Content.IsMatch(@"^\s*Knock knock\s*$"))
                     message.Reply("Who's there?");
             };

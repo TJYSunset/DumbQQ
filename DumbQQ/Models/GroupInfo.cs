@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace DumbQQ.Models
@@ -36,6 +37,7 @@ namespace DumbQQ.Models
         ///     备注名称。
         /// </summary>
         [JsonProperty("markname")]
+        [Obsolete("此属性没有用处。")]
         public string Alias { get; set; }
 
         /// <summary>
@@ -49,5 +51,11 @@ namespace DumbQQ.Models
         /// </summary>
         [JsonProperty("users")]
         public List<GroupMember> Members { get; set; } = new List<GroupMember>();
+
+        /// <summary>
+        ///     已登录账户在此群的群名片。
+        /// </summary>
+        [JsonIgnore]
+        public string MyAlias { get; set; }
     }
 }

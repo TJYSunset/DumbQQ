@@ -1,4 +1,5 @@
-﻿using DumbQQ.Client;
+﻿using System;
+using DumbQQ.Client;
 using DumbQQ.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -72,5 +73,26 @@ namespace DumbQQ.Models
         {
             Client.Message(DumbQQClient.TargetType.Group, GroupId, content);
         }
+
+        /// <summary>
+        ///     指示本账户是否被提到。
+        /// </summary>
+        [JsonIgnore]
+        public bool MentionedMe
+            =>
+                Group.MyAlias != null && Content.Contains(Group.MyAlias) ||
+                Client.Nickname != null && Content.Contains(Client.Nickname);
+
+        /// <summary>
+        ///     指示本账户是否被@。
+        /// </summary>
+        /// <remarks>
+        ///     此属性无法区分真正的@与内容相同的纯文本。
+        /// </remarks>
+        [JsonIgnore]
+        public bool StrictlyMentionedMe
+            =>
+                (Group.MyAlias != null || Client.Nickname != null) &&
+                Content.Contains("@" + (Group.MyAlias ?? Client.Nickname));
     }
 }
