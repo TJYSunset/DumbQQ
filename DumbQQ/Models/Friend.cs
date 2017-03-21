@@ -2,6 +2,7 @@
 using System.Linq;
 using DumbQQ.Client;
 using DumbQQ.Constants;
+using DumbQQ.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -12,7 +13,8 @@ namespace DumbQQ.Models
     /// </summary>
     public class Friend : User, IListable, IMessageable
     {
-        [JsonIgnore] private FriendInfo _info;
+        [JsonIgnore] private readonly LazyHelper<FriendCategory> _category = new LazyHelper<FriendCategory>();
+        [JsonIgnore] private readonly LazyHelper<FriendInfo> _info = new LazyHelper<FriendInfo>();
 
         [JsonIgnore] internal DumbQQClient Client;
 
@@ -45,22 +47,16 @@ namespace DumbQQ.Models
         ///     所属分组。
         /// </summary>
         [JsonIgnore]
-        public FriendCategory Category => Client.Categories.Find(_ => _.Index == CategoryIndex);
+        public FriendCategory Category
+            => _category.GetValue(() => Client.Categories.Find(_ => _.Index == CategoryIndex));
 
         [JsonIgnore]
-        private FriendInfo Info
+        private FriendInfo Info => _info.GetValue(() =>
         {
-            get
-            {
-                if (_info != null) return _info;
-
-                DumbQQClient.Logger.Debug("开始获取好友信息");
-
-                var response = Client.Client.Get(ApiUrl.GetFriendInfo, Id, Client.Vfwebqq, Client.Psessionid);
-                _info = ((JObject) Client.GetResponseJson(response)["result"]).ToObject<FriendInfo>();
-                return _info;
-            }
-        }
+            DumbQQClient.Logger.Debug("开始获取好友信息");
+            var response = Client.Client.Get(ApiUrl.GetFriendInfo, Id, Client.Vfwebqq, Client.Psessionid);
+            return ((JObject) Client.GetResponseJson(response)["result"]).ToObject<FriendInfo>();
+        });
 
         /// <summary>
         ///     个性签名。

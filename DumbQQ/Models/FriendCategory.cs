@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using DumbQQ.Client;
 using DumbQQ.Constants;
+using DumbQQ.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -31,7 +31,10 @@ namespace DumbQQ.Models
         ///     成员。
         /// </summary>
         [JsonIgnore]
-        public List<Friend> Members => Client.Friends.FindAll(_ => _.CategoryIndex == Index);
+        public List<Friend> Members => _members.GetValue(() => Client.Friends.FindAll(_ => _.CategoryIndex == Index));
+
+        [JsonIgnore] private readonly LazyHelper<List<Friend>> _members = new LazyHelper<List<Friend>>();
+
 
         /// <summary>
         ///     用于初始化默认分组。

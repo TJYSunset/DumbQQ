@@ -10,6 +10,9 @@ namespace DumbQQ.Models
     /// </summary>
     public class DiscussionMessage : IMessage
     {
+        [JsonIgnore] private readonly LazyHelper<Discussion> _discussion = new LazyHelper<Discussion>();
+        [JsonIgnore] private readonly LazyHelper<DiscussionMember> _sender = new LazyHelper<DiscussionMember>();
+
         [JsonIgnore] internal DumbQQClient Client;
 
         /// <summary>
@@ -22,13 +25,13 @@ namespace DumbQQ.Models
         ///     来源讨论组。
         /// </summary>
         [JsonIgnore]
-        public Discussion Discussion => Client.Discussions.Find(_ => _.Id == DiscussionId);
+        public Discussion Discussion => _discussion.GetValue(() => Client.Discussions.Find(_ => _.Id == DiscussionId));
 
         /// <summary>
         ///     字体。
         /// </summary>
         [JsonProperty("content_font")]
-        public Font Font { get; set; }
+        internal Font Font { get; set; }
 
         /// <summary>
         ///     用于parse消息和字体的对象。
@@ -53,7 +56,7 @@ namespace DumbQQ.Models
 
         /// <inheritdoc />
         [JsonIgnore]
-        public DiscussionMember Sender => Discussion.Members.Find(_ => _.Id == SenderId);
+        public DiscussionMember Sender => _sender.GetValue(() => Discussion.Members.Find(_ => _.Id == SenderId));
 
         [JsonIgnore]
         User IMessage.Sender => Sender;
@@ -72,5 +75,8 @@ namespace DumbQQ.Models
         {
             Client.Message(DumbQQClient.TargetType.Discussion, DiscussionId, content);
         }
+
+        /// <inheritdoc />
+        IMessageable IMessage.RepliableTarget => Discussion;
     }
 }

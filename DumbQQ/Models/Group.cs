@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using DumbQQ.Client;
 using DumbQQ.Constants;
+using DumbQQ.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -11,7 +13,7 @@ namespace DumbQQ.Models
     /// </summary>
     public class Group : IListable, IMessageable
     {
-        [JsonIgnore] private GroupInfo _info;
+        [JsonIgnore] private readonly LazyHelper<GroupInfo> _info = new LazyHelper<GroupInfo>();
 
         [JsonIgnore] internal DumbQQClient Client;
 
@@ -28,56 +30,49 @@ namespace DumbQQ.Models
         internal long Code { get; set; }
 
         [JsonIgnore]
-        private GroupInfo Info
+        private GroupInfo Info => _info.GetValue(() =>
         {
-            get
+            DumbQQClient.Logger.Debug("开始获取群资料");
+
+            var response = Client.Client.Get(ApiUrl.GetGroupInfo, Code, Client.Vfwebqq);
+            var result = (JObject) Client.GetResponseJson(response)["result"];
+            var info = result["ginfo"].ToObject<GroupInfo>();
+            // 获得群成员信息
+            var members = new Dictionary<long, GroupMember>();
+            var minfo = (JArray) result["minfo"];
+            for (var i = 0; minfo != null && i < minfo.Count; i++)
             {
-                if (_info != null) return _info;
-
-                DumbQQClient.Logger.Debug("开始获取群资料");
-
-                var response = Client.Client.Get(ApiUrl.GetGroupInfo, Code, Client.Vfwebqq);
-                var result = (JObject) Client.GetResponseJson(response)["result"];
-                _info = result["ginfo"].ToObject<GroupInfo>();
-                // 获得群成员信息
-                var members = new Dictionary<long, GroupMember>();
-                var minfo = (JArray) result["minfo"];
-                for (var i = 0; minfo != null && i < minfo.Count; i++)
-                {
-                    var member = minfo[i].ToObject<GroupMember>();
-                    members.Add(member.Id, member);
-                    _info.Members.Add(member);
-                }
-                var stats = (JArray) result["stats"];
-                for (var i = 0; stats != null && i < stats.Count; i++)
-                {
-                    var item = (JObject) stats[i];
-                    var member = members[item["uin"].Value<long>()];
-                    member.ClientType = item["client_type"].Value<int>();
-                    member.Status = item["stat"].Value<int>();
-                }
-                var cards = (JArray) result["cards"];
-                for (var i = 0; cards != null && i < cards.Count; i++)
-                {
-                    var item = (JObject) cards[i];
-                    members[item["muin"].Value<long>()].Alias = item["card"].Value<string>();
-                    if (item["muin"].Value<long>() == Client.Id)
-                    {
-                        _info.MyAlias = item["card"].Value<string>();
-                    }
-                }
-                var vipinfo = (JArray) result["vipinfo"];
-                for (var i = 0; vipinfo != null && i < vipinfo.Count; i++)
-                {
-                    var item = (JObject) vipinfo[i];
-                    var member = members[item["u"].Value<long>()];
-                    member.IsVip = item["is_vip"].Value<int>() == 1;
-                    member.VipLevel = item["vip_level"].Value<int>();
-                }
-                _info.Members.ForEach(_ => _.Client = Client);
-                return _info;
+                var member = minfo[i].ToObject<GroupMember>();
+                members.Add(member.Id, member);
+                info.Members.Add(member);
             }
-        }
+            var stats = (JArray) result["stats"];
+            for (var i = 0; stats != null && i < stats.Count; i++)
+            {
+                var item = (JObject) stats[i];
+                var member = members[item["uin"].Value<long>()];
+                member.ClientType = item["client_type"].Value<int>();
+                member.Status = item["stat"].Value<int>();
+            }
+            var cards = (JArray) result["cards"];
+            for (var i = 0; cards != null && i < cards.Count; i++)
+            {
+                var item = (JObject) cards[i];
+                members[item["muin"].Value<long>()].Alias = item["card"].Value<string>();
+                if (item["muin"].Value<long>() == Client.Id)
+                    info.MyAlias = item["card"].Value<string>();
+            }
+            var vipinfo = (JArray) result["vipinfo"];
+            for (var i = 0; vipinfo != null && i < vipinfo.Count; i++)
+            {
+                var item = (JObject) vipinfo[i];
+                var member = members[item["u"].Value<long>()];
+                member.IsVip = item["is_vip"].Value<int>() == 1;
+                member.VipLevel = item["vip_level"].Value<int>();
+            }
+            info.Members.ForEach(_ => _.Client = Client);
+            return info;
+        });
 
         /// <summary>
         ///     创建时间。
@@ -95,19 +90,28 @@ namespace DumbQQ.Models
         ///     备注名称。
         /// </summary>
         [JsonIgnore]
+        [Obsolete("此属性没有用处。")]
         public string Alias => Info.Alias;
 
         /// <summary>
         ///     群主。
         /// </summary>
         [JsonIgnore]
-        public GroupMember Owner => Members.Find(_ => _.Id == Info.OwnerId);
+        public GroupMember Owner => _owner.GetValue(() => Members.Find(_ => _.Id == Info.OwnerId));
+
+        [JsonIgnore] private readonly LazyHelper<GroupMember> _owner = new LazyHelper<GroupMember>();
 
         /// <summary>
         ///     成员。
         /// </summary>
         [JsonIgnore]
         public List<GroupMember> Members => Info.Members;
+
+        /// <summary>
+        ///     已登录账户在此群的群名片。
+        /// </summary>
+        [JsonIgnore]
+        public string MyAlias => Info.MyAlias;
 
         /// <inheritdoc />
         [JsonProperty("name")]
@@ -116,12 +120,6 @@ namespace DumbQQ.Models
         /// <inheritdoc />
         [JsonProperty("gid")]
         public long Id { get; internal set; }
-
-        /// <summary>
-        ///     已登录账户在此群的群名片。
-        /// </summary>
-        [JsonIgnore]
-        public string MyAlias => Info.MyAlias;
 
         /// <inheritdoc />
         /// <param name="content">消息内容。</param>

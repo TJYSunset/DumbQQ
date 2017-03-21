@@ -5,7 +5,7 @@ namespace DumbQQ.Models
     /// <summary>
     ///     字体。
     /// </summary>
-    public class Font
+    internal class Font
     {
         /// <summary>
         ///     默认字体。

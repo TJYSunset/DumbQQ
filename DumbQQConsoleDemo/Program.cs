@@ -14,18 +14,20 @@ namespace DumbQQConsoleDemo
         public static void Main(string[] args)
         {
             // 好友消息回调
-            Client.FriendMessageReceived += (sender, message) =>
-            {
-                var s = message.Sender;
-                Console.WriteLine($"{s.Alias ?? s.Nickname}:{message.Content}");
-            };
+            Client.FriendMessageReceived +=
+                (sender, message) =>
+                {
+                    Console.WriteLine($"{message.Sender.Alias ?? message.Sender.Nickname}:{message.Content}");
+                };
             // 群消息回调
             Client.GroupMessageReceived += (sender, message) =>
             {
-                var s = message.Sender;
-                Console.WriteLine($"[{message.Group.Name}|{message.Group.Alias}]{s.Alias ?? s.Nickname}:{message.Content}");
+                Console.WriteLine(
+                    $"[{message.Group.Name}]{message.Sender.Alias ?? message.Sender.Nickname}:{message.Content}");
                 if (message.Content.IsMatch(@"^\s*Knock knock\s*$"))
                     message.Reply("Who's there?");
+                else if (message.StrictlyMentionedMe)
+                    message.Reply("什么事？");
             };
             // 讨论组消息回调
             Client.DiscussionMessageReceived +=

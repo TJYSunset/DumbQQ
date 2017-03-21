@@ -21,6 +21,11 @@
         User Sender { get; }
 
         /// <summary>
+        ///     可回复的对象。
+        /// </summary>
+        IMessageable RepliableTarget { get; }
+
+        /// <summary>
         ///     回复该消息。
         /// </summary>
         /// <param name="content">回复内容。</param>
