@@ -444,7 +444,7 @@ namespace DumbQQ.Client
             if (response.StatusCode != HttpStatusCode.OK)
                 Logger.Error("消息发送失败，HTTP返回码" + (int) response.StatusCode);
 
-            var status = JObject.Parse(response.RawText)["retcode"].ToObject<int?>();
+            var status = JObject.Parse(response.RawText)["errCode"].ToObject<int?>();
             if (status != null && (status == 0 || status == 100100))
             {
                 Logger.Debug("消息发送成功");
