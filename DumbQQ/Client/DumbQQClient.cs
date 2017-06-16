@@ -512,6 +512,14 @@ namespace DumbQQ.Client
         {
             if (Status != ClientStatus.Idle)
                 throw new InvalidOperationException("已在登录或者已经登录，不能重复进行登录操作");
+
+
+            var cookieContainerField = Client.Request.GetType()
+                .GetField(@"cookieContainer", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (cookieContainerField == null)
+                throw new NotImplementedException("无法写入Cookie，可能是因为EasyHttp更改了HttpRequest类的内部结构；请Issue汇报该问题。");
+            var originalCookieContainer = cookieContainerField.GetValue(Client.Request);
+
             try
             {
                 Logger.Debug("开始通过cookie登录");
@@ -522,10 +530,6 @@ namespace DumbQQ.Client
                 Ptwebqq = dump["ptwebqq"].Value<string>();
                 Uin = dump["uin"].Value<long>();
                 Vfwebqq = dump["vfwebqq"].Value<string>();
-                var cookieContainerField = Client.Request.GetType()
-                    .GetField(@"cookieContainer", BindingFlags.NonPublic | BindingFlags.Instance);
-                if (cookieContainerField == null)
-                    throw new NotImplementedException("无法写入Cookie，可能是因为EasyHttp更改了HttpRequest类的内部结构；请Issue汇报该问题。");
                 var cookies = new CookieContainer();
                 foreach (var cookie in dump["cookies"].Value<JArray>().ToObject<List<Cookie>>())
                     cookies.Add(cookie);
@@ -538,11 +542,13 @@ namespace DumbQQ.Client
                     return LoginResult.Succeeded;
                 }
                 Status = ClientStatus.Idle;
+                cookieContainerField.SetValue(Client.Request, originalCookieContainer);
                 return LoginResult.CookieExpired;
             }
             catch (Exception ex)
             {
                 Status = ClientStatus.Idle;
+                cookieContainerField.SetValue(Client.Request, originalCookieContainer);
                 Logger.Error("登录失败，抛出异常：" + ex);
                 return LoginResult.Failed;
             }
