@@ -5,7 +5,6 @@ using DumbQQ.Constants;
 using DumbQQ.Models.Abstract;
 using DumbQQ.Models.Receipts;
 using DumbQQ.Utils;
-using RestSharp;
 using RestSharp.Deserializers;
 using SimpleJson;
 
@@ -25,8 +24,8 @@ namespace DumbQQ.Models
             Properties = new LazyProperties(() =>
             {
                 var response =
-                    Client.RestClient.Get<FriendPropertiesReceipt>(Api.GetFriendInfo.Get(Id,
-                        Client.Session.tokens.Vfwebqq, Client.Session.tokens.Psessionid));
+                    Client.RestClient.Get<FriendPropertiesReceipt>(Api.GetFriendInfo, Id,
+                        Client.Session.tokens.vfwebqq, Client.Session.tokens.psessionid);
                 if (!response.IsSuccessful)
                     throw new HttpRequestException($"HTTP request unsuccessful: status code {response.StatusCode}");
 
@@ -64,7 +63,7 @@ namespace DumbQQ.Models
 
         public void Message(string content)
         {
-            var response = Client.RestClient.Post<MessageReceipt>(Api.SendMessageToFriend.Post(
+            var response = Client.RestClient.Post<Receipt>(Api.SendMessageToFriend,
                 new JsonObject
                 {
                     {@"to", Id},
@@ -72,11 +71,11 @@ namespace DumbQQ.Models
                     {@"face", 573},
                     {@"client_id", Miscellaneous.ClientId},
                     {@"msg_id", Miscellaneous.MessageId},
-                    {@"psessionid", Client.Session.tokens.Psessionid}
-                }));
+                    {@"psessionid", Client.Session.tokens.psessionid}
+                });
             if (!response.IsSuccessful)
                 throw new HttpRequestException($"HTTP request unsuccessful: status code {response.StatusCode}");
-            if (response.Data.Code != 0)
+            if (response.Data.Code is int code && code != 0)
                 throw new ApplicationException($"Request unsuccessful: returned {response.Data.Code}");
         }
     }

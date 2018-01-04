@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Web;
 using DumbQQ.Models.Abstract;
 using MoreLinq;
@@ -11,19 +12,57 @@ namespace DumbQQ.Utils
 {
     public static class ExtensionMethods
     {
-        internal static RestRequest Get(this (string url, string referer) api, params object[] parameters)
+        private static readonly Regex UrlPattern = new Regex(@"^(?<domain>https?://.*?)/(?<path>.*)$");
+
+        private static (string domain, string path) SeperateDomain(string url)
         {
-            var request = new RestRequest(new Uri(string.Format(api.url, parameters)));
-            if (api.referer != null) request.AddHeader("Referer", api.referer);
-            return request;
+            var match = UrlPattern.Match(url);
+            return (match.Groups[@"domain"].Value, match.Groups[@"path"].Value);
         }
 
-        internal static RestRequest Post(this (string url, string referer) api, JsonObject json)
+        internal static IRestResponse Get(this RestClient client, (string url, string referer) api,
+            params object[] parameters)
         {
-            return (RestRequest) new RestRequest(new Uri(api.url))
-                .AddHeader("Referer", api.referer)
-                .AddHeader("Origin", api.url.Substring(0, api.url.LastIndexOf('/')))
-                .AddBody($"r={HttpUtility.UrlEncode(json.ToString())}");
+            var (domain, path) = SeperateDomain(string.Format(api.url, parameters));
+            var request = new RestRequest(path);
+            if (api.referer != null) request.AddHeader(@"Referer", api.referer);
+            client.BaseUrl = new Uri(domain);
+            return client.Get(request);
+        }
+
+        internal static IRestResponse<T> Get<T>(this RestClient client, (string url, string referer) api,
+            params object[] parameters) where T : new()
+        {
+            var (domain, path) = SeperateDomain(string.Format(api.url, parameters));
+            var request = new RestRequest(path)
+                .AddHeader(@"Connection", @"Keep-Alive");
+            if (api.referer != null) request.AddHeader(@"Referer", api.referer);
+            client.BaseUrl = new Uri(domain);
+            return client.Get<T>(request);
+        }
+
+        internal static IRestResponse Post(this RestClient client, (string url, string referer) api,
+            JsonObject json)
+        {
+            var (domain, path) = SeperateDomain(api.url);
+            var request = new RestRequest(path)
+                .AddHeader(@"Referer", api.referer)
+                .AddHeader(@"Origin", api.url.Substring(0, api.url.LastIndexOf('/')))
+                .AddParameter(@"r", json, ParameterType.GetOrPost);
+            client.BaseUrl = new Uri(domain);
+            return client.Post(request);
+        }
+
+        internal static IRestResponse<T> Post<T>(this RestClient client, (string url, string referer) api,
+            JsonObject json) where T : new()
+        {
+            var (domain, path) = SeperateDomain(api.url);
+            var request = new RestRequest(path)
+                .AddHeader(@"Referer", api.referer)
+                .AddHeader(@"Origin", api.url.Substring(0, api.url.LastIndexOf('/')))
+                .AddParameter(@"r", json, ParameterType.GetOrPost);
+            client.BaseUrl = new Uri(domain);
+            return client.Post<T>(request);
         }
 
         internal static Dictionary<TKey, TValue> Reassemble<TKey, TValue>(this IEnumerable<TValue> source,

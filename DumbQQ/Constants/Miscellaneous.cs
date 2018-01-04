@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace DumbQQ.Constants
+﻿namespace DumbQQ.Constants
 {
     internal static class Miscellaneous
     {

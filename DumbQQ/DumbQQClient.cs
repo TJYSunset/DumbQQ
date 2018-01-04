@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -6,7 +7,6 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using DumbQQ.Constants;
 using DumbQQ.Models;
 using DumbQQ.Models.Abstract;
@@ -18,103 +18,103 @@ using SimpleJson;
 
 namespace DumbQQ
 {
-    public class DumbQQClient : UserCollection<Friend>, IUseLazyProperty
+    public class DumbQQClient : IEnumerable<Friend>, IUseLazyProperty
     {
         #region session related
 
-        public struct TokenContainer
-        {
-            public string Ptwebqq;
-            public string Vfwebqq;
-            public ulong Uin;
-            public string Psessionid;
-        }
-
         public RestClient RestClient { get; } =
-            new RestClient {UserAgent = Miscellaneous.DefaultUserAgent, Encoding = Encoding.UTF8};
+            new RestClient {UserAgent = Miscellaneous.DefaultUserAgent, CookieContainer = new CookieContainer()};
+        // TODO BaseUrl problem
 
-        private TokenContainer _tokenContainer;
+        private (string ptwebqq, string vfwebqq, ulong uin, string psessionid) _tokens;
 
-        public (TokenContainer tokens, CookieContainer cookies) Session
+        public ((string ptwebqq, string vfwebqq, ulong uin, string psessionid) tokens, CookieContainer cookies) Session
         {
-            get => (_tokenContainer, RestClient.CookieContainer);
+            get => (_tokens, RestClient.CookieContainer);
             set
             {
-                _tokenContainer = value.tokens;
+                _tokens = value.tokens;
                 RestClient.CookieContainer = value.cookies;
 
                 // some magical extra step
-                RestClient.Get(Api.GetFriendStatus.Get(_tokenContainer.Vfwebqq, _tokenContainer.Psessionid));
+                RestClient.Get(Api.GetFriendStatus, value.tokens.vfwebqq, value.tokens.psessionid);
             }
         }
 
-        public static (TokenContainer tokens, CookieContainer cookies) QrAuthenticate(Action<byte[]> imageCallback,
-            uint maxAttempts = 10)
+        public static ((string ptwebqq, string vfwebqq, ulong uin, string psessionid) tokens, CookieContainer cookies)
+            QrAuthenticate(Action<byte[]> imageCallback,
+                uint maxAttempts = 10)
         {
-            var tokens = new TokenContainer();
-            var client = new RestClient();
+            int Hash33(string s)
+            {
+                var e = 0;
+                foreach (var t in s)
+                    e += (e << 5) + t;
+                return int.MaxValue & e;
+            }
+
+            var client = new RestClient
+            {
+                UserAgent = Miscellaneous.DefaultUserAgent,
+                CookieContainer = new CookieContainer()
+            };
 
             // download QR code and get the temporary token "qrsig"
-            var qrResponse = client.Get(Api.GetQrCode.Get());
-            var qrsig = qrResponse.Cookies.First(x => x.Name == @"qrsig").Value;
+            var qrResponse = client.Get(Api.GetQrCode);
+            var ptqrtoken = Hash33(qrResponse.Cookies.First(x => x.Name == @"qrsig").Value);
             imageCallback(qrResponse.RawBytes);
 
             // wait for manual authentication and get the url to next step
-            int Hash33(string s)
-            {
-                int e = 0, i = 0, n = s.Length;
-                for (; n > i; ++i)
-                    e += (e << 5) + s[i];
-                return 2147483647 & e;
-            }
 
-            string ptwebqqUrl;
+            string ptwebqqUrl, ptwebqq;
             while (true)
             {
-                Thread.Sleep(1);
-                var message = client.Get(Api.VerifyQrCode.Get(Hash33(qrsig))).Content;
-                if (message.Contains(@"失效")) throw new TimeoutException("QR authentication timed out.");
-                if (!message.Contains(@"成功")) continue;
-                ptwebqqUrl = Api.GetPtwebqqPattern.Match(message).Value;
+                Thread.Sleep(1000);
+                var message = client.Get(Api.VerifyQrCode, ptqrtoken);
+                if (message.Content.Contains(@"已失效")) throw new TimeoutException("QR authentication timed out.");
+                if (!message.Content.Contains(@"成功")) continue;
+                ptwebqqUrl = Api.GetPtwebqqPattern.Match(message.Content).Value;
+                ptwebqq = message.Cookies
+                    .First(x => x.Name == @"ptwebqq")
+                    .Value;
                 break;
             }
 
-            // get ptwebqq
-            tokens.Ptwebqq = client.Get(Api.GetPtwebqq.Get(ptwebqqUrl))
-                .Cookies
-                .First(x => x.Name == @"ptwebqq")
-                .Value;
+            // get ptwebqq (not really)
+            client.Get(Api.GetPtwebqq, ptwebqqUrl);
 
             // get vfwebqq
-            VfwebqqReceipt? vfwebqqReceipt = null;
+            VfwebqqReceipt vfwebqqReceipt = null;
             while (maxAttempts > 0)
             {
-                var response = client.Get<VfwebqqReceipt>(Api.GetVfwebqq.Get(tokens.Ptwebqq));
+                var response = client.Get<VfwebqqReceipt>(Api.GetVfwebqq, ptwebqq);
                 if (response.IsSuccessful)
                 {
                     vfwebqqReceipt = response.Data;
                     break;
                 }
+
                 maxAttempts--;
             }
+
             if (vfwebqqReceipt == null)
                 throw new HttpRequestException(
                     "QR authentication unsuccessful: maximum attempts reached getting vfwebqq.");
-            tokens.Vfwebqq = vfwebqqReceipt.Value.Result.Vfwebqq;
+            var vfwebqq = vfwebqqReceipt.Result.Vfwebqq;
 
             // get uin & psessionid
-            var uinPsessionidReceipt = client.Post<UinPsessionidReceipt>(Api.GetUinAndPsessionid.Post(
+            var uinPsessionidReceipt = client.Post<UinPsessionidReceipt>(Api.GetUinAndPsessionid,
                 new JsonObject
                 {
-                    {@"ptwebqq", tokens.Ptwebqq},
+                    {@"ptwebqq", ptwebqq},
                     {@"clientid", Miscellaneous.ClientId},
                     {@"psessionid", @""},
                     {@"status", @"online"}
-                })).Data;
-            tokens.Uin = uinPsessionidReceipt.Result.Uin;
-            tokens.Psessionid = uinPsessionidReceipt.Result.Psessionid;
+                }).Data;
+            var uin = uinPsessionidReceipt.Result.Uin;
+            var psessionid = uinPsessionidReceipt.Result.Psessionid;
 
-            return (tokens, client.CookieContainer);
+            return ((ptwebqq, vfwebqq, uin, psessionid), client.CookieContainer);
         }
 
         #endregion
@@ -133,6 +133,7 @@ namespace DumbQQ
 
         public DumbQQClient()
         {
+            RestClient.AddHandler(@"text/plain", new JsonDeserializer());
             Properties = new LazyProperties(() =>
             {
                 string Hash(long uin, string ptwebqq)
@@ -140,7 +141,7 @@ namespace DumbQQ
                     var n = new int[4];
                     for (var T = 0; T < ptwebqq.Length; T++)
                         n[T % 4] ^= ptwebqq[T];
-                    string[] u = {"EC", "OK"};
+                    string[] u = {@"EC", @"OK"};
                     var v = new long[4];
                     v[0] = ((uin >> 24) & 255) ^ u[0][0];
                     v[1] = ((uin >> 16) & 255) ^ u[0][1];
@@ -159,35 +160,36 @@ namespace DumbQQ
                         v1 += n1[(int) ((aU1 >> 4) & 15)];
                         v1 += n1[(int) (aU1 & 15)];
                     }
+
                     return v1;
                 }
 
-                var hash = Hash((long) Session.tokens.Uin, Session.tokens.Ptwebqq);
+                var hash = Hash((long) Session.tokens.uin, Session.tokens.ptwebqq);
 
                 // load friends and their categories
-                var friendsReceipt = RestClient.Post<FriendsReceipt>(Api.GetFriendList.Post(new JsonObject
+                var friendsReceipt = RestClient.Post<FriendsReceipt>(Api.GetFriendList, new JsonObject
                 {
-                    {@"vfwebqq", Session.tokens.Vfwebqq},
+                    {@"vfwebqq", Session.tokens.vfwebqq},
                     {@"hash", hash}
-                })).Data.Result;
+                }).Data.Result;
 
                 // load groups
-                var groupsReceipt = RestClient.Post<GroupsReceipt>(Api.GetGroupList.Post(new JsonObject
+                var groupsReceipt = RestClient.Post<GroupsReceipt>(Api.GetGroupList, new JsonObject
                 {
-                    {@"vfwebqq", Session.tokens.Vfwebqq},
+                    {@"vfwebqq", Session.tokens.vfwebqq},
                     {@"hash", hash}
-                })).Data.Result;
+                }).Data.Result;
 
                 // load discussions
                 var discussionsReceipt =
-                    RestClient.Get<DiscussionsReceipt>(Api.GetDiscussList.Get(Session.tokens.Psessionid,
-                        Session.tokens.Vfwebqq)).Data.Result;
+                    RestClient.Get<DiscussionsReceipt>(Api.GetDiscussList, Session.tokens.psessionid,
+                        Session.tokens.vfwebqq).Data.Result;
 
                 return new Dictionary<int, object>
                 {
                     {
                         (int) LazyProperty.FriendCategories,
-                        friendsReceipt.CategoryNameList.Prepend(null).ToList().AsReadOnly()
+                        friendsReceipt.CategoryNameList.Prepend(string.Empty).ToList().AsReadOnly()
                     },
                     {
                         (int) LazyProperty.Friends,
@@ -215,7 +217,12 @@ namespace DumbQQ
 
         public void LoadLazyProperties() => Properties.Load();
 
-        public override IEnumerator<Friend> GetEnumerator() => Friends.Values.GetEnumerator();
+        public IEnumerator<Friend> GetEnumerator() => Friends.Values.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
 
         #endregion
 
@@ -224,17 +231,26 @@ namespace DumbQQ
         public IEnumerable<Message> Poll()
         {
             var response =
-                Client.RestClient.Post<PollingReceipt>(Api.GetDiscussInfo.Post(new JsonObject
+                RestClient.Post<PollingReceipt>(Api.GetDiscussInfo, new JsonObject
                 {
-                    {@"ptwebqq", Session.tokens.Ptwebqq},
+                    {@"ptwebqq", Session.tokens.ptwebqq},
                     {@"clientid", Miscellaneous.ClientId},
-                    {@"psessionid", Session.tokens.Psessionid},
+                    {@"psessionid", Session.tokens.psessionid},
                     {@"key", @""}
-                }));
+                });
             if (!response.IsSuccessful)
-                throw new HttpRequestException($"HTTP request unsuccessful: status code {response.StatusCode}");
+                throw new HttpRequestException($"HTTP request unsuccessful: status code {response.StatusCode}",
+                    response.ErrorException);
 
-            return response.Data.MessageList;
+            if (!(response.Data.Code is int code)) return response.Data.MessageList;
+
+            switch (code)
+            {
+                case 0:
+                    return response.Data.MessageList;
+                default:
+                    throw new ApplicationException($"Request unsuccessful: returned {response.Data.Code}");
+            }
         }
 
         #endregion

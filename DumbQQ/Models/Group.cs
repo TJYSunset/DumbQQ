@@ -6,7 +6,6 @@ using DumbQQ.Constants;
 using DumbQQ.Models.Abstract;
 using DumbQQ.Models.Receipts;
 using DumbQQ.Utils;
-using RestSharp;
 using RestSharp.Deserializers;
 using SimpleJson;
 
@@ -53,8 +52,8 @@ namespace DumbQQ.Models
             Properties = new LazyProperties(() =>
             {
                 var response =
-                    Client.RestClient.Get<GroupPropertiesReceipt>(Api.GetDiscussInfo.Get(PropertiesCode,
-                        Client.Session.tokens.Vfwebqq));
+                    Client.RestClient.Get<GroupPropertiesReceipt>(Api.GetDiscussInfo, PropertiesCode,
+                        Client.Session.tokens.vfwebqq);
                 if (!response.IsSuccessful)
                     throw new HttpRequestException($"HTTP request unsuccessful: status code {response.StatusCode}");
 
@@ -62,7 +61,8 @@ namespace DumbQQ.Models
                 {
                     {
                         (int) LazyProperty.Members,
-                        new ReadOnlyDictionary<ulong, Member>(response.Data.Result.MemberList.Reassemble(x => x.Id, Client,
+                        new ReadOnlyDictionary<ulong, Member>(response.Data.Result.MemberList.Reassemble(x => x.Id,
+                            Client,
                             response.Data.Result.MemberNameAliasList,
                             response.Data.Result.MemberStatusList))
                     },
@@ -91,7 +91,7 @@ namespace DumbQQ.Models
 
         public void Message(string content)
         {
-            var response = Client.RestClient.Post<MessageReceipt>(Api.SendMessageToGroup.Post(
+            var response = Client.RestClient.Post<Receipt>(Api.SendMessageToGroup,
                 new JsonObject
                 {
                     {@"group_uin", Id},
@@ -99,11 +99,11 @@ namespace DumbQQ.Models
                     {@"face", 573},
                     {@"client_id", Miscellaneous.ClientId},
                     {@"msg_id", Miscellaneous.MessageId},
-                    {@"psessionid", Client.Session.tokens.Psessionid}
-                }));
+                    {@"psessionid", Client.Session.tokens.psessionid}
+                });
             if (!response.IsSuccessful)
                 throw new HttpRequestException($"HTTP request unsuccessful: status code {response.StatusCode}");
-            if (response.Data.Code != 0)
+            if (response.Data.Code is int code && code != 0)
                 throw new ApplicationException($"Request unsuccessful: returned {response.Data.Code}");
         }
     }

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace DumbQQ.Constants
 {
@@ -103,6 +100,6 @@ namespace DumbQQ.Constants
             "https://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1"
             );
 
-        public static readonly Regex GetPtwebqqPattern = new Regex(@"http[^']+?");
+        public static readonly Regex GetPtwebqqPattern = new Regex(@"https[^']+?(?=')");
     }
 }
