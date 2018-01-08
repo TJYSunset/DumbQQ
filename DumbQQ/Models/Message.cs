@@ -6,8 +6,6 @@ namespace DumbQQ.Models
 {
     public class Message : IClientExclusive
     {
-        public DumbQQClient Client { get; set; }
-
         public enum SourceType
         {
             Friend,
@@ -52,16 +50,14 @@ namespace DumbQQ.Models
 
         public SourceType Type { get; internal set; }
 
-        [DeserializeAs(Name = @"time")]
-        public ulong? Timestamp { get; internal set; }
+        [DeserializeAs(Name = @"time")] public ulong? Timestamp { get; internal set; }
 
-        [DeserializeAs(Name = @"content")]
-        public string Content { get; internal set; }
+        [DeserializeAs(Name = @"content")] public string Content { get; internal set; }
 
-        [DeserializeAs(Name = @"from_uin")]
-        public ulong? SenderId { get; internal set; }
+        [DeserializeAs(Name = @"from_uin")] public ulong? SenderId { get; internal set; }
 
-        [DeserializeAs(Name = @"group_code")]
-        public ulong? SourceId { get; internal set; }
+        [DeserializeAs(Name = @"group_code")] public ulong? SourceId { get; internal set; }
+
+        public DumbQQClient Client { get; set; }
     }
 }

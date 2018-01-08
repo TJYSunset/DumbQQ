@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using DumbQQ.PasswordAuthentication;
+using System.Runtime.Serialization.Formatters.Binary;
 using MoreLinq;
 
 namespace DumbQQ.ConsoleDemo
@@ -11,19 +11,47 @@ namespace DumbQQ.ConsoleDemo
     {
         public static void Main(string[] args)
         {
-            var client = new DumbQQClient
+            ((string, string, ulong, string), CookieContainer) ReadSession()
             {
-                Session = DumbQQClient.QrAuthenticate(x =>
+                using (var stream = new FileStream(@"session.tmp", FileMode.Open))
                 {
-                    File.WriteAllBytes(@"temp.png", x);
-                    Process.Start(@"temp.png");
-                    Console.WriteLine(@"Waiting for manual authentication...");
-                })
-            };
+                    return (((string, string, ulong, string), CookieContainer)) new BinaryFormatter().Deserialize(
+                        stream);
+                }
+            }
+
+            ((string, string, ulong, string), CookieContainer) Authenticate()
+            {
+                var session = DumbQQClient.QrAuthenticate(x =>
+                {
+                    File.WriteAllBytes(@"qrcode.png", x);
+                    Process.Start(@"qrcode.png");
+                    Console.WriteLine("Waiting for authentication...");
+                });
+
+                using (var stream = new FileStream(@"session.tmp", FileMode.OpenOrCreate))
+                {
+                    new BinaryFormatter().Serialize(stream, session);
+                }
+
+                return session;
+            }
+
+            var client = new DumbQQClient();
+            try
+            {
+                client.Session = File.Exists(@"session.tmp") ? ReadSession() : Authenticate();
+            }
+            catch
+            {
+                client.Session = Authenticate();
+            }
+
             Console.WriteLine(@"Logged in!");
 
-            client.Groups.Values.ForEach(x => Console.WriteLine(x.Name));
+            client.FriendCategories.Values.ForEach(x => Console.WriteLine(x.Name));
             client.Friends.Values.ForEach(x => Console.WriteLine(x.Name));
+            client.Groups.Values.ForEach(x => Console.WriteLine(x.Name));
             client.Discussions.Values.ForEach(x => Console.WriteLine(x.Name));
             while (true)
             {

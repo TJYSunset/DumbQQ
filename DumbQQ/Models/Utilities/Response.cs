@@ -1,49 +1,51 @@
 ﻿using System.Collections.Generic;
 using RestSharp.Deserializers;
 
-namespace DumbQQ.Models.Receipts
+namespace DumbQQ.Models.Utilities
 {
-    internal class Receipt
+    internal class Response
     {
         [DeserializeAs(Name = @"retcode")] public int? Code { get; set; }
     }
 
-    internal class MessageReceipt : Receipt
+    internal class MessageResponse : Response
     {
     }
 
-    internal class PollingReceipt : Receipt
+    internal class PollingResponse : Response
     {
         [DeserializeAs(Name = @"result")] public List<Message> MessageList { get; set; } = new List<Message>();
     }
 
-    internal class VfwebqqReceipt : Receipt
+    internal class VfwebqqResponse : Response
     {
+        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
+
         public class Wrapper
         {
             [DeserializeAs(Name = @"vfwebqq")] public string Vfwebqq { get; set; }
         }
-
-        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
     }
 
-    internal class UinPsessionidReceipt : Receipt
+    internal class UinPsessionidResponse : Response
     {
+        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
+
         public class Wrapper
         {
             [DeserializeAs(Name = @"uin")] public ulong Uin { get; set; }
 
             [DeserializeAs(Name = @"psessionid")] public string Psessionid { get; set; }
         }
-
-        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
     }
 
-    internal class FriendsReceipt : Receipt
+    internal class FriendsResponse : Response
     {
+        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
+
         public class Wrapper
         {
-            [DeserializeAs(Name = @"categories")] public List<string> CategoryNameList { get; set; }
+            [DeserializeAs(Name = @"categories")] public List<FriendCategory> CategoryList { get; set; }
 
             [DeserializeAs(Name = @"info")] public List<Friend> FriendList { get; set; }
 
@@ -51,35 +53,41 @@ namespace DumbQQ.Models.Receipts
 
             [DeserializeAs(Name = @"friends")] public List<Friend> FriendCategoryIndexList { get; set; }
         }
-
-        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
     }
 
-    internal class FriendPropertiesReceipt : Receipt
+    internal class FriendPropertiesResponse : Response
     {
+        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
+
         public class Wrapper
         {
             [DeserializeAs(Name = @"lnick")] public string Bio { get; set; }
         }
-
-        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
     }
 
-    internal class GroupsReceipt : Receipt
+    internal class GroupsResponse : Response
     {
+        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
+
         public class Wrapper
         {
             [DeserializeAs(Name = @"gnamelist")] public List<Group> GroupList { get; set; }
         }
-
-        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
     }
 
-    internal class GroupPropertiesReceipt : Receipt
+    internal class GroupPropertiesResponse : Response
     {
+        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
+
         public class Wrapper
         {
             [DeserializeAs(Name = @"ginfo")] public MiscellaneousWrapper Miscellaneous { get; set; }
+
+            [DeserializeAs(Name = @"minfo")] public List<Group.Member> MemberList { get; set; }
+
+            [DeserializeAs(Name = @"cards")] public List<Group.Member> MemberNameAliasList { get; set; }
+
+            [DeserializeAs(Name = @"stats")] public List<Group.Member> MemberStatusList { get; set; }
 
             public class MiscellaneousWrapper
             {
@@ -90,36 +98,28 @@ namespace DumbQQ.Models.Receipts
 
                 [DeserializeAs(Name = @"memo")] public string PinnedAnnouncement { get; set; }
             }
-
-            [DeserializeAs(Name = @"minfo")] public List<Group.Member> MemberList { get; set; }
-
-            [DeserializeAs(Name = @"cards")] public List<Group.Member> MemberNameAliasList { get; set; }
-
-            [DeserializeAs(Name = @"stats")] public List<Group.Member> MemberStatusList { get; set; }
         }
-
-        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
     }
 
-    internal class DiscussionsReceipt : Receipt
+    internal class DiscussionsResponse : Response
     {
+        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
+
         public class Wrapper
         {
             [DeserializeAs(Name = @"dnamelist")] public List<Discussion> DiscussionList { get; set; }
         }
-
-        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
     }
 
-    internal class DiscussionPropertiesReceipt : Receipt
+    internal class DiscussionPropertiesResponse : Response
     {
+        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
+
         public class Wrapper
         {
             [DeserializeAs(Name = @"mem_info")] public List<Discussion.Member> MemberList { get; set; }
 
             [DeserializeAs(Name = @"mem_status")] public List<Discussion.Member> MemberStatusList { get; set; }
         }
-
-        [DeserializeAs(Name = @"result")] public Wrapper Result { get; set; }
     }
 }

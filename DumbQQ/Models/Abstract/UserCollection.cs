@@ -6,14 +6,16 @@ namespace DumbQQ.Models.Abstract
 {
     public abstract class UserCollection<T> : IEnumerable<T>, IClientExclusive where T : User
     {
-        public DumbQQClient Client { get; set; }
-
         public virtual ulong Id { get; internal set; }
         public virtual string Name { get; internal set; }
         public virtual ReadOnlyDictionary<long, T> Members { get; internal set; }
+        public DumbQQClient Client { get; set; }
 
         public abstract IEnumerator<T> GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 }

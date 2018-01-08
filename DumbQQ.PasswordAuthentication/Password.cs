@@ -12,22 +12,32 @@ using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.PhantomJS;
 using OpenQA.Selenium.Remote;
 using OpenQA.Selenium.Support.UI;
+using Cookie = System.Net.Cookie;
 
 namespace DumbQQ.PasswordAuthentication
 {
     public static class Password
     {
         public static ((string ptwebqq, string vfwebqq, ulong uin, string psessionid) tokens, CookieContainer cookies)
-            AuthenticateUsingPhantomJs(ulong username, string password) =>
-            Authenticate(username, password, new PhantomJSDriver(), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(1));
+            AuthenticateUsingPhantomJs(ulong username, string password)
+        {
+            return Authenticate(username, password, new PhantomJSDriver(), TimeSpan.FromSeconds(30),
+                TimeSpan.FromSeconds(1));
+        }
 
         public static ((string ptwebqq, string vfwebqq, ulong uin, string psessionid) tokens, CookieContainer cookies)
-            AuthenticateUsingFirefox(ulong username, string password) =>
-            Authenticate(username, password, new FirefoxDriver(), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(1));
+            AuthenticateUsingFirefox(ulong username, string password)
+        {
+            return Authenticate(username, password, new FirefoxDriver(), TimeSpan.FromSeconds(30),
+                TimeSpan.FromSeconds(1));
+        }
 
         public static ((string ptwebqq, string vfwebqq, ulong uin, string psessionid) tokens, CookieContainer cookies)
-            AuthenticateUsingChronme(ulong username, string password) =>
-            Authenticate(username, password, new ChromeDriver(), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(1));
+            AuthenticateUsingChronme(ulong username, string password)
+        {
+            return Authenticate(username, password, new ChromeDriver(), TimeSpan.FromSeconds(30),
+                TimeSpan.FromSeconds(1));
+        }
 
         public static ((string ptwebqq, string vfwebqq, ulong uin, string psessionid) tokens, CookieContainer cookies)
             Authenticate(ulong username, string password, RemoteWebDriver driver, TimeSpan timeout,
@@ -59,7 +69,7 @@ namespace DumbQQ.PasswordAuthentication
                 var cookies = new CookieContainer();
                 driver.Manage().Cookies.AllCookies.ForEach(x =>
                     cookies.Add(
-                        new System.Net.Cookie(x.Name, x.Value, x.Path, x.Domain)));
+                        new Cookie(x.Name, x.Value, x.Path, x.Domain)));
 
                 driver.Navigate().GoToUrl(@"https://w.qq.com");
                 wait.Until(ExpectedConditions.PresenceOfAllElementsLocatedBy(By.ClassName(@"container")));
