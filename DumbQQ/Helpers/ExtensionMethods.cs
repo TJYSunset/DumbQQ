@@ -14,6 +14,7 @@ namespace DumbQQ.Helpers
     public static class ExtensionMethods
     {
         private static readonly Regex UrlPattern = new Regex(@"^(?<domain>https?://.*?)/(?<path>.*)$");
+        private static readonly string[] ContentTypeInsepctionTargets = {@"json", @"text/plain"};
 
         internal static (string domain, string path) SeperateDomain(string url)
         {
@@ -23,6 +24,7 @@ namespace DumbQQ.Helpers
 
         internal static IRestResponse<T> Inspect<T>(this IRestResponse<T> response) where T : Response
         {
+            if (!ContentTypeInsepctionTargets.Any(x => response.ContentType.Contains(x))) return response;
             if (!response.IsSuccessful)
                 throw new HttpRequestException(
                     $"HTTP request unsuccessful: status code {response.StatusCode}. See inner exception (if exists) for details.",
