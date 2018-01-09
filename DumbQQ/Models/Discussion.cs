@@ -69,7 +69,7 @@ namespace DumbQQ.Models
         [DeserializeAs(Name = @"name")] public override string Name { get; internal set; }
 
         [LazyProperty]
-        public override ReadOnlyDictionary<long, Member> Members => Properties[(int) LazyProperty.Members];
+        public override ReadOnlyDictionary<ulong, Member> Members => Properties[(int) LazyProperty.Members];
 
         public override IEnumerator<Member> GetEnumerator()
         {

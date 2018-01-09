@@ -24,7 +24,7 @@ namespace DumbQQ.Test.Helpers
         [TestFixture]
         public class ReassembleTest
         {
-            private struct Example : IClientExclusive
+            private class Example : IClientExclusive
             {
                 public int Id { get; set; }
 
@@ -41,6 +41,41 @@ namespace DumbQQ.Test.Helpers
                 public override string ToString()
                 {
                     return $"#{Id}: Integer={Integer}, List={List?.Capacity}, ClientSet={Client != null}";
+                }
+
+                private bool Equals(Example other)
+                {
+                    return Id == other.Id && Integer == other.Integer && Equals(List, other.List) &&
+                           Equals(Client, other.Client);
+                }
+
+                public override bool Equals(object obj)
+                {
+                    if (ReferenceEquals(null, obj)) return false;
+                    if (ReferenceEquals(this, obj)) return true;
+                    return obj.GetType() == GetType() && Equals((Example) obj);
+                }
+
+                public override int GetHashCode()
+                {
+                    unchecked
+                    {
+                        var hashCode = Id;
+                        hashCode = (hashCode * 397) ^ Integer;
+                        hashCode = (hashCode * 397) ^ (List != null ? List.GetHashCode() : 0);
+                        hashCode = (hashCode * 397) ^ (Client != null ? Client.GetHashCode() : 0);
+                        return hashCode;
+                    }
+                }
+
+                public static bool operator ==(Example left, Example right)
+                {
+                    return Equals(left, right);
+                }
+
+                public static bool operator !=(Example left, Example right)
+                {
+                    return !Equals(left, right);
                 }
             }
 

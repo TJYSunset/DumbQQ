@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel;
 using RestSharp.Deserializers;
 
 namespace DumbQQ.Models.Utilities
@@ -14,7 +15,61 @@ namespace DumbQQ.Models.Utilities
 
     internal class PollingResponse : Response
     {
-        [DeserializeAs(Name = @"result")] public List<Message> MessageList { get; set; } = new List<Message>();
+        [DeserializeAs(Name = @"result")]
+        public List<MessageWrapper> MessageList { get; set; } = new List<MessageWrapper>();
+
+        public class MessageWrapper
+        {
+            [DeserializeAs(Name = @"poll_type")]
+            private string TypePrimitive
+            {
+                set
+                {
+                    switch (value)
+                    {
+                        case @"message":
+                            Type = Message.SourceType.Friend;
+                            break;
+                        case @"group_message":
+                            Type = Message.SourceType.Group;
+                            break;
+                        case @"discu_message":
+                            Type = Message.SourceType.Discussion;
+                            break;
+                        default:
+                            throw new InvalidEnumArgumentException(
+                                $"Error deserializing message: unexpected poll_type {value}");
+                    }
+                }
+            }
+
+            public Message.SourceType Type { get; internal set; }
+
+            [DeserializeAs(Name = @"value")] public Wrapper Data { get; set; }
+
+            public class Wrapper
+            {
+                [DeserializeAs(Name = @"send_uin")]
+                public ulong SenderIdGroupDiscussion
+                {
+                    set => SenderId = value;
+                }
+
+                [DeserializeAs(Name = @"did")]
+                public ulong SourceIdDiscussion
+                {
+                    set => SourceId = value;
+                }
+
+                [DeserializeAs(Name = @"time")] public ulong? Timestamp { get; internal set; }
+
+                [DeserializeAs(Name = @"content")] public List<string> Content { get; internal set; }
+
+                [DeserializeAs(Name = @"from_uin")] public ulong? SenderId { get; internal set; }
+
+                [DeserializeAs(Name = @"group_code")] public ulong? SourceId { get; internal set; }
+            }
+        }
     }
 
     internal class VfwebqqResponse : Response

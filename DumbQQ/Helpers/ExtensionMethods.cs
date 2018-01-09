@@ -101,8 +101,11 @@ namespace DumbQQ.Helpers
 
                     foreach (var property in properties)
                         property.SetValue(obj,
-                            list.Select(y => property.GetValue(y)).SkipWhile(y => y == null)
-                                .FirstOrDefault()); // default value will always be accepted, so make sure all properties are nullable and/or the collection with the greatest coverage is passed as `source`.
+                            list.Select(y => property.GetValue(y))
+                                .FirstOrDefault(y =>
+                                    property.PropertyType.IsValueType
+                                        ? y != Activator.CreateInstance(property.PropertyType)
+                                        : y != null));
 
                     obj.Client = client;
 

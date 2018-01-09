@@ -27,7 +27,7 @@ namespace DumbQQ
         public IEnumerable<Message> Poll()
         {
             var response =
-                RestClient.Post<PollingResponse>(Api.GetDiscussInfo, new JsonObject
+                RestClient.Post<PollingResponse>(Api.PollMessage, new JsonObject
                 {
                     {@"ptwebqq", Session.tokens.ptwebqq},
                     {@"clientid", Miscellaneous.ClientId},
@@ -35,7 +35,15 @@ namespace DumbQQ
                     {@"key", @""}
                 });
 
-            return response.Data.MessageList;
+            return response.Data.MessageList.Select(x => new Message
+            {
+                Client = this,
+                Type = x.Type,
+                Content = string.Join(string.Empty, x.Data.Content.Skip(1)),
+                SenderId = x.Data.SenderId,
+                SourceId = x.Data.SourceId,
+                Timestamp = x.Data.Timestamp
+            });
         }
 
         #endregion
@@ -221,12 +229,12 @@ namespace DumbQQ
                     },
                     {
                         (int) LazyProperty.Groups,
-                        new ReadOnlyDictionary<ulong, Group>(groupsResponse.GroupList.ToDictionary(x => x.Id))
+                        new ReadOnlyDictionary<ulong, Group>(groupsResponse.GroupList.Reassemble(x => x.Id, this))
                     },
                     {
                         (int) LazyProperty.Discussions,
                         new ReadOnlyDictionary<ulong, Discussion>(
-                            discussionsResponse.DiscussionList.ToDictionary(x => x.Id))
+                            discussionsResponse.DiscussionList.Reassemble(x => x.Id, this))
                     }
                 };
             });

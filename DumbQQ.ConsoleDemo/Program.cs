@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
+using DumbQQ.Models.Utilities;
 using MoreLinq;
 
 namespace DumbQQ.ConsoleDemo
@@ -52,11 +54,19 @@ namespace DumbQQ.ConsoleDemo
             client.FriendCategories.Values.ForEach(x => Console.WriteLine(x.Name));
             client.Friends.Values.ForEach(x => Console.WriteLine(x.Name));
             client.Groups.Values.ForEach(x => Console.WriteLine(x.Name));
+            client.Groups.Values.FirstOrDefault()?.Members.ForEach(x => Console.WriteLine(x.Value.NameAlias ?? x.Value.Name));
             client.Discussions.Values.ForEach(x => Console.WriteLine(x.Name));
             while (true)
             {
-                Console.Write(".");
-                client.Poll().ForEach(x => Console.WriteLine(x.Content));
+                try
+                {
+                    Console.Write(".");
+                    client.Poll().ForEach(x => Console.WriteLine(x.Content));
+                }
+                catch (ApiException ex) when (ex.Code == 100100)
+                {
+                    Console.Write("*");
+                }
             }
         }
     }

@@ -61,7 +61,7 @@ namespace DumbQQ.Models
             Properties = new LazyProperties(() =>
             {
                 var response =
-                    Client.RestClient.Get<GroupPropertiesResponse>(Api.GetDiscussInfo, PropertiesCode,
+                    Client.RestClient.Get<GroupPropertiesResponse>(Api.GetGroupInfo, PropertiesCode,
                         Client.Session.tokens.vfwebqq);
 
                 return new Dictionary<int, object>
@@ -87,7 +87,7 @@ namespace DumbQQ.Models
         [DeserializeAs(Name = @"name")] public override string Name { get; internal set; }
 
         [LazyProperty]
-        public override ReadOnlyDictionary<long, Member> Members => Properties[(int) LazyProperty.Members];
+        public override ReadOnlyDictionary<ulong, Member> Members => Properties[(int) LazyProperty.Members];
 
         [LazyProperty] public string PinnedAnnouncement => Properties[(int) LazyProperty.PinnedAnnouncement];
 
